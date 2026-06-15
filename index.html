@@ -2,7 +2,7 @@
 <html lang="ka">
 <head>
 <meta charset="UTF-8">
-<title>Roulette AI Engine</title>
+<title>Roulette AI Engine v14.0</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -48,14 +48,13 @@ video{width:100%;height:100%;object-fit:contain}
 
 .ratio-box{background:#1e1b4b;padding:4px 6px;border-radius:4px;border:1px solid #4338ca;font-size:10px;line-height:1.3;display:flex;justify-content:space-between}
 .pred-box{background:#1e3a8a;border:2px solid #3b82f6;padding:6px;border-radius:6px;margin-top:2px}
-.log-entry{background:#1c1c1f;padding:2px 4px;border-radius:3px;margin-bottom:2px;display:flex;justify-content:space-between;border:1px solid #27272a}
 .warn-box{background:#78350f;border:1px solid #f59e0b;padding:3px;border-radius:3px;font-size:9px;color:#fef3c7}
 </style>
 </head>
 <body>
 
 <div id="topBar">
-  <h2>🎰 ROULETTE v13.0</h2>
+  <h2>🎰 ROULETTE v14.0</h2>
   <button id="btnTab" class="btn">📺 ვიდეო</button>
   <button id="btnSS" class="btn">▶ START</button>
   <span id="statusTxt">გათიშული</span>
@@ -63,7 +62,7 @@ video{width:100%;height:100%;object-fit:contain}
 
 <div id="sliders">
   <label>🟢 მწვანე: <input type="range" id="greenStrict" min="1" max="5" value="3"> <span class="sv" id="sv1">3</span></label>
-  <label>🌑 ჩაბნელებული პიქსელები: <input type="range" id="ballSens" min="2" max="40" value="5"> <span class="sv" id="sv2">5 პქ</span></label>
+  <label>⚡ ბურთის სპრინტი: <input type="range" id="ballSens" min="5" max="60" value="15"> <span class="sv" id="sv2">15</span></label>
 </div>
 
 <div id="brainState">
@@ -117,15 +116,14 @@ function sl(id,outId,suffix=""){
   const e=document.getElementById(id),o=document.getElementById(outId);
   e.addEventListener('input',()=>{o.textContent=e.value+suffix}); return e;
 }
-const greenStrictSl=sl('greenStrict','sv1'), ballSensSl=sl('ballSens','sv2'," პქ");
+const greenStrictSl=sl('greenStrict','sv1'), ballSensSl=sl('ballSens','sv2');
 const sW={el:document.getElementById('sw'),act:false}, sB={el:document.getElementById('sb'),act:false};
 
 let isRecording=false, rawWheelPasses=[], ballPasses=[], startTime=0, stopTime=0, lastWheelPassTime=-999, ballLockoutUntil=0;
 let currentFacingMode = "environment";
 
-// ლოკალური პიქსელების ბაზისური მატრიცა
-let localBaselineMatrix = new Float32Array(256);
-let isBaselineInit = false;
+// წინა კადრის ხაზის სკანერი სიკაშკაშისთვის
+let prevLineData = new Float32Array(16);
 
 async function initCamera() {
   if (vid.srcObject) {
@@ -155,7 +153,7 @@ document.getElementById('btnTab').addEventListener('click', () => {
 btnSS.addEventListener('click', ()=>{
   isRecording=!isRecording;
   if(isRecording){
-    startTime=performance.now(); rawWheelPasses=[]; ballPasses=[]; ballLockoutUntil=0; lastWheelPassTime=-999; isBaselineInit = false;
+    startTime=performance.now(); rawWheelPasses=[]; ballPasses=[]; ballLockoutUntil=0; lastWheelPassTime=-999;
     btnSS.textContent='⏹ STOP'; btnSS.style.background='#b91c1c'; statusTxt.textContent='იწერება...';
   }else{
     stopTime=performance.now(); btnSS.textContent='▶ START'; btnSS.style.background='#16a34a'; statusTxt.textContent='მზადაა';
@@ -205,32 +203,29 @@ function syncProcessingLoop() {
       setTimeout(()=>sW.el.classList.remove('act'),150);
     }
     
-    // 2. 🌑 ბურთის სენსორი (ლოკალური პიქსელის მკვეთრი ვარდნა)
+    // 2. ⚡ ბურთის სენსორი (ულტრა-სწრაფი ხაზოვანი სკანერი)
     const bd = sample(sB.el,ctx16,16);
-    let heavilyDarkenedPixels = 0;
-    let requiredPixelsCount = parseInt(ballSensSl.value); // სლაიდერი (რამდენი პიქსელი უნდა ჩაბნელდეს)
+    let maxContrastShift = 0;
+    let gate = parseInt(ballSensSl.value); // სლაიდერი (5 - 60)
     
-    for (let i = 0, j = 0; i < bd.length; i += 4, j++) {
-      let r = bd[i], g = bd[i+1], b = bd[i+2];
-      let currentPixelBrightness = 0.299*r + 0.587*g + 0.114*b;
+    // ვიღებთ მხოლოდ შუა ხაზის 16 პიქსელს (ჰორიზონტალურად)
+    // ეს ზრდის დამუშავების სიჩქარეს 16-ჯერ
+    for (let x = 0; x < 16; x++) {
+      let idx = (8 * 16 + x) * 4; // მე-8 რიგის პიქსელები
+      let r = bd[idx], g = bd[idx+1], b = bd[idx+2];
       
-      if (!isBaselineInit) {
-        localBaselineMatrix[j] = currentPixelBrightness;
-      } else {
-        // ბაზისური პიქსელი ნელა მიყვება ფონს, რომ ციმციმი გააბათილოს
-        localBaselineMatrix[j] = localBaselineMatrix[j] * 0.93 + currentPixelBrightness * 0.07;
-        
-        // თუ კონკრეტული პიქსელი თავის ბაზისურ შუქთან შედარებით უეცრად 25 ერთეულით დაბლა ვარდება (ჩრდილდება)
-        if (localBaselineMatrix[j] - currentPixelBrightness > 25) {
-          heavilyDarkenedPixels++;
-        }
+      let currentVal = 0.299*r + 0.587*g + 0.114*b;
+      let diff = Math.abs(currentVal - prevLineData[x]);
+      
+      if (diff > maxContrastShift) {
+        maxContrastShift = diff;
       }
+      prevLineData[x] = currentVal;
     }
-    isBaselineInit = true;
     
-    // თუ ზონაში ერთდროულად ჩაბნელდა სლაიდერით მოთხოვნილი პიქსელების რაოდენობა
-    if (heavilyDarkenedPixels >= requiredPixelsCount && now > ballLockoutUntil) {
-      sB.el.classList.add('act'); ballPasses.push(ts); ballLockoutUntil = now + 320;
+    // თუ თუნდაც ერთ წერტილში მოხდა მკვეთრი ნახტომი (ბურთის სწრაფი აელვება ჩრდილის სახით)
+    if (maxContrastShift > gate && now > ballLockoutUntil) {
+      sB.el.classList.add('act'); ballPasses.push(ts); ballLockoutUntil = now + 350; // იცავს ხელახალი აფეთქებისგან
       setTimeout(() => sB.el.classList.remove('act'), 120);
     }
   }
