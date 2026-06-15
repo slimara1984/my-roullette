@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1041/1041048.png">
+<link class="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1041/1041048.png">
 
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -55,7 +55,7 @@ video{width:100%;height:100%;object-fit:contain}
 <body>
 
 <div id="topBar">
-  <h2>🎰 ROULETTE v12.8</h2>
+  <h2>🎰 ROULETTE v12.9</h2>
   <button id="btnTab" class="btn">📺 ვიდეო</button>
   <button id="btnSS" class="btn">▶ START</button>
   <span id="statusTxt">გათიშული</span>
@@ -63,7 +63,7 @@ video{width:100%;height:100%;object-fit:contain}
 
 <div id="sliders">
   <label>🟢 მწვანე: <input type="range" id="greenStrict" min="1" max="5" value="3"> <span class="sv" id="sv1">3</span></label>
-  <label>🌑 ჩრდილის სიმკვეთრე: <input type="range" id="ballSens" min="15" max="90" value="45"> <span class="sv" id="sv2">45</span></label>
+  <label>🌑 ჩრდილის მგრძნობელობა: <input type="range" id="ballSens" min="5" max="40" value="12"> <span class="sv" id="sv2">12%</span></label>
 </div>
 
 <div id="brainState">
@@ -117,11 +117,14 @@ function sl(id,outId,p=false){
   const e=document.getElementById(id),o=document.getElementById(outId);
   e.addEventListener('input',()=>{o.textContent=e.value+(p?'%':'')}); return e;
 }
-const greenStrictSl=sl('greenStrict','sv1'), ballSensSl=sl('ballSens','sv2');
+const greenStrictSl=sl('greenStrict','sv1'), ballSensSl=sl('ballSens','sv2',true);
 const sW={el:document.getElementById('sw'),act:false}, sB={el:document.getElementById('sb'),act:false};
 
 let isRecording=false, rawWheelPasses=[], ballPasses=[], startTime=0, stopTime=0, lastWheelPassTime=-999, ballLockoutUntil=0;
 let currentFacingMode = "environment";
+
+// ახალი ბაზისური სიკაშკაშის ცვლადი
+let rollingShadowBase = -1;
 
 async function initCamera() {
   if (vid.srcObject) {
@@ -151,7 +154,7 @@ document.getElementById('btnTab').addEventListener('click', () => {
 btnSS.addEventListener('click', ()=>{
   isRecording=!isRecording;
   if(isRecording){
-    startTime=performance.now(); rawWheelPasses=[]; ballPasses=[]; ballLockoutUntil=0; lastWheelPassTime=-999;
+    startTime=performance.now(); rawWheelPasses=[]; ballPasses=[]; ballLockoutUntil=0; lastWheelPassTime=-999; rollingShadowBase = -1;
     btnSS.textContent='⏹ STOP'; btnSS.style.background='#b91c1c'; statusTxt.textContent='იწერება...';
   }else{
     stopTime=performance.now(); btnSS.textContent='▶ START'; btnSS.style.background='#16a34a'; statusTxt.textContent='მზადაა';
@@ -193,7 +196,7 @@ function syncProcessingLoop() {
   if (isRecording && vid.readyState >= 3) {
     const now = performance.now(), ts = (now - startTime) / 1000;
     
-    // 1. 🟢 მწვანე სენსორი (იდეალური ორიგინალი)
+    // 1. 🟢 მწვანე სენსორი (იდეალური ვერსია)
     const wd = sample(sW.el,ctx8,8); let gc = 0;
     for (let i = 0; i < wd.length; i += 4) if (isGreen(wd[i], wd[i + 1], wd[i + 2], parseInt(greenStrictSl.value))) gc++;
     if (gc >= 16 * 0.25 && (ts - lastWheelPassTime) > 1.5) {
@@ -201,26 +204,30 @@ function syncProcessingLoop() {
       setTimeout(()=>sW.el.classList.remove('act'),150);
     }
     
-    // 2. 🌑 ბურთის სენსორი (თეთრ ხაზზე მუქი ჩრდილის გარბენის დეტექტორი)
+    // 2. 🌑 ბურთის სენსორი (დინამიური ნეგატიური იმპულსი)
     const bd = sample(sB.el,ctx16,16);
-    let shadowPixelsDetected = 0;
-    let shadowThreshold = parseInt(ballSensSl.value); // სლაიდერის მნიშვნელობა
+    let frameTotalBrightness = 0;
     
     for (let i = 0; i < bd.length; i += 4) {
-      let r = bd[i], g = bd[i+1], b = bd[i+2];
-      let brightness = 0.299*r + 0.587*g + 0.114*b;
-      
-      // თუ პიქსელი არის აშკარად მუქი/ნაცრისფერი/შავი (სიკაშკაშე ნაკლებია სლაიდერის ზღვარზე)
-      if (brightness < shadowThreshold) {
-        shadowPixelsDetected++;
-      }
+      frameTotalBrightness += (0.299*bd[i] + 0.587*bd[i+1] + 0.114*bd[i+2]);
     }
+    let currentAvg = frameTotalBrightness / 256; // მიმდინარე კადრის საშუალო სიკაშკაშე
     
-    // თუ სენსორში (რომელიც თეთრ ზოლზე დგას) უეცრად შემოვიდა მუქი პიქსელების მასა (ჩრდილი)
-    // მინიმუმ 6 პიქსელი უნდა გამუქდეს ერთდროულად, რაც ადასტურებს ბურთის გავლას
-    if (shadowPixelsDetected >= 6 && now > ballLockoutUntil) {
-      sB.el.classList.add('act'); ballPasses.push(ts); ballLockoutUntil = now + 300;
-      setTimeout(() => sB.el.classList.remove('act'), 120);
+    if (rollingShadowBase === -1) {
+      rollingShadowBase = currentAvg;
+    } else {
+      // ვანახლებთ საბაზისო განათებას ძალიან ნელა, რომ ეკრანის ფონურმა ციმციმმა სენსორი არ აანთოს
+      rollingShadowBase = rollingShadowBase * 0.96 + currentAvg * 0.04;
+      
+      // გამოვთვლით პროცენტულ ვარდნას
+      let percentageDrop = ((rollingShadowBase - currentAvg) / rollingShadowBase) * 100;
+      let userSensitivityPercent = parseInt(ballSensSl.value); // მაგალითად 12%
+      
+      // თუ სიკაშკაშე მკვეთრად დაეცა (გაირბინა ჩრდილმა)
+      if (percentageDrop > userSensitivityPercent && now > ballLockoutUntil && rollingShadowBase > 10) {
+        sB.el.classList.add('act'); ballPasses.push(ts); ballLockoutUntil = now + 320;
+        setTimeout(() => sB.el.classList.remove('act'), 120);
+      }
     }
   }
   if(vid.requestVideoFrameCallback) vid.requestVideoFrameCallback(syncProcessingLoop); else requestAnimationFrame(syncProcessingLoop);
