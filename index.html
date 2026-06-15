@@ -2,13 +2,13 @@
 <html lang="ka">
 <head>
 <meta charset="UTF-8">
-<title>Roulette AI Engine v15.0</title>
+<title>Roulette AI Engine v16.0</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1041/1041048.png">
+<link class="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1041/1041048.png">
 
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -19,7 +19,7 @@ body{background:#09090b;color:#e4e4e7;font-family:monospace;font-size:11px;overf
 .btn{padding:5px 10px;font-weight:bold;border:none;border-radius:4px;cursor:pointer;font-family:monospace;font-size:11px}
 #btnTab{background:#2563eb;color:#fff}
 #btnSS{background:#dc2626;color:#fff}
-#statusTxt{color:#a1a1aa;font-size:11px}
+#statusTxt">გათიშული</span>
 
 #sliders{display:flex;gap:12px;align-items:center;padding:6px 10px;background:#0f0f11;border-bottom:1px solid #27272a;color:#a1a1aa}
 #sliders input[type=range]{width:70px}
@@ -32,10 +32,10 @@ body{background:#09090b;color:#e4e4e7;font-family:monospace;font-size:11px;overf
 #videoSide{flex:1;position:relative;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden}
 video{width:100%;height:100%;object-fit:contain}
 
-.sensor{position:absolute;border:2px dashed #fff;border-radius:50%;width:32px;height:32px;z-index:10;touch-action:none}
+.sensor{position:absolute;border:2px dashed #fff;border-radius:50%;width:35px;height:35px;z-index:10;touch-action:none}
 #sw{border-color:#22c55e;left:35%;top:45%}
 #sw.act{background:rgba(34,197,94,.55);box-shadow:0 0 12px #22c55e}
-#sb{border-color:#eab308;left:65%;top:30%}
+#sb{border-color:#eab308;left:55%;top:30%}
 #sb.act{background:rgba(234,179,8,.55);box-shadow:0 0 12px #eab308}
 .resizer{position:absolute;right:-2px;bottom:-2px;width:10px;height:10px;background:#fff;border-radius:50%}
 
@@ -48,14 +48,13 @@ video{width:100%;height:100%;object-fit:contain}
 
 .ratio-box{background:#1e1b4b;padding:4px 6px;border-radius:4px;border:1px solid #4338ca;font-size:10px;line-height:1.3;display:flex;justify-content:space-between}
 .pred-box{background:#1e3a8a;border:2px solid #3b82f6;padding:6px;border-radius:6px;margin-top:2px}
-.log-entry{background:#1c1c1f;padding:2px 4px;border-radius:3px;margin-bottom:2px;display:flex;justify-content:space-between;border:1px solid #27272a}
 .warn-box{background:#78350f;border:1px solid #f59e0b;padding:3px;border-radius:3px;font-size:9px;color:#fef3c7}
 </style>
 </head>
 <body>
 
 <div id="topBar">
-  <h2>🎰 ROULETTE v15.0</h2>
+  <h2>🎰 ROULETTE v16.0</h2>
   <button id="btnTab" class="btn">📺 კამერა</button>
   <button id="btnSS" class="btn">▶ START</button>
   <span id="statusTxt">გათიშული</span>
@@ -63,7 +62,7 @@ video{width:100%;height:100%;object-fit:contain}
 
 <div id="sliders">
   <label>🟢 მწვანე: <input type="range" id="greenStrict" min="1" max="5" value="3"> <span class="sv" id="sv1">3</span></label>
-  <label>⚪ ბურთის ნათება: <input type="range" id="ballSens" min="10" max="80" value="35"> <span class="sv" id="sv2">+35 ავარდნა</span></label>
+  <label>🎯 მგრძნობელობა: <input type="range" id="ballSens" min="5" max="50" value="15"> <span class="sv" id="sv2">15</span></label>
 </div>
 
 <div id="brainState">
@@ -117,14 +116,13 @@ function sl(id,outId,suffix=""){
   const e=document.getElementById(id),o=document.getElementById(outId);
   e.addEventListener('input',()=>{o.textContent=e.value+suffix}); return e;
 }
-const greenStrictSl=sl('greenStrict','sv1'), ballSensSl=sl('ballSens','sv2'," ავარდნა");
+const greenStrictSl=sl('greenStrict','sv1'), ballSensSl=sl('ballSens','sv2');
 const sW={el:document.getElementById('sw'),act:false}, sB={el:document.getElementById('sb'),act:false};
 
 let isRecording=false, rawWheelPasses=[], ballPasses=[], startTime=0, stopTime=0, lastWheelPassTime=-999, ballLockoutUntil=0;
 let currentFacingMode = "environment";
 
-// ბაზისური განათების მატრიცა მხოლოდ მუქი ზოლისთვის
-let darkTrackBaseline = -1;
+let bBaseline = -1;
 
 async function initCamera() {
   if (vid.srcObject) {
@@ -154,7 +152,7 @@ document.getElementById('btnTab').addEventListener('click', () => {
 btnSS.addEventListener('click', ()=>{
   isRecording=!isRecording;
   if(isRecording){
-    startTime=performance.now(); rawWheelPasses=[]; ballPasses=[]; ballLockoutUntil=0; lastWheelPassTime=-999; darkTrackBaseline = -1;
+    startTime=performance.now(); rawWheelPasses=[]; ballPasses=[]; ballLockoutUntil=0; lastWheelPassTime=-999; bBaseline = -1;
     btnSS.textContent='⏹ STOP'; btnSS.style.background='#b91c1c'; statusTxt.textContent='იწერება...';
   }else{
     stopTime=performance.now(); btnSS.textContent='▶ START'; btnSS.style.background='#16a34a'; statusTxt.textContent='მზადაა';
@@ -181,12 +179,41 @@ function setTouchDrag(el){
 }
 setTouchDrag(sW.el); setTouchDrag(sB.el);
 
-function sample(el,ctx,sz){
-  const vw=vid.videoWidth, vh=vid.videoHeight; if(!vw||!vh) return new Uint8ClampedArray(sz*sz*4);
-  const r=vid.getBoundingClientRect(), scaleX=vw/r.width, scaleY=vh/r.height;
-  const sx=((el.offsetLeft+wrapper.offsetLeft)-r.left)*scaleX, sy=((el.offsetTop+wrapper.offsetTop)-r.top)*scaleY;
-  ctx.clearRect(0,0,sz,sz); ctx.drawImage(vid,sx,sy,Math.max(4,el.offsetWidth*scaleX),Math.max(4,el.offsetHeight*scaleY),0,0,sz,sz);
-  return ctx.getImageData(0,0,sz,sz).data;
+// აბსოლუტური კოორდინატების გამოთვლის ახალი სისტემა
+function sample(el, ctx, sz) {
+  const vw = vid.videoWidth, vh = vid.videoHeight;
+  if (!vw || !vh) return new Uint8ClampedArray(sz * sz * 4);
+
+  const videoRect = vid.getBoundingClientRect();
+  
+  // ვპოულობთ ვიდეოს რეალურ ზომებს ეკრანზე (object-fit: contain-ის გათვალისწინებით)
+  const videoRatio = vw / vh;
+  const elementRatio = videoRect.width / videoRect.height;
+  
+  let realWidth = videoRect.width;
+  let realHeight = videoRect.height;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  if (elementRatio > videoRatio) {
+    realWidth = videoRect.height * videoRatio;
+    offsetX = (videoRect.width - realWidth) / 2;
+  } else {
+    realHeight = videoRect.width / videoRatio;
+    offsetY = (videoRect.height - realHeight) / 2;
+  }
+
+  // სენსორის ცენტრის პოზიცია ვიდეოს მიმართ
+  const sensorX = (el.offsetLeft + el.offsetWidth / 2) - videoRect.left - offsetX;
+  const sensorY = (el.offsetTop + el.offsetHeight / 2) - videoRect.top - offsetY;
+
+  // გადაყვანა ვიდეოს რეალურ პიქსელებში
+  const srcX = (sensorX / realWidth) * vw - (sz / 2);
+  const srcY = (sensorY / realHeight) * vh - (sz / 2);
+
+  ctx.clearRect(0, 0, sz, sz);
+  ctx.drawImage(vid, Math.max(0, srcX), Math.max(0, srcY), sz, sz, 0, 0, sz, sz);
+  return ctx.getImageData(0, 0, sz, sz).data;
 }
 
 function isGreen(r,g,b,lv){ return g>(48+lv*7) && g>r*(1.12+lv*0.06) && g>b*(1.12+lv*0.06) && r<g*(0.88-lv*0.05); }
@@ -196,33 +223,31 @@ function syncProcessingLoop() {
     const now = performance.now(), ts = (now - startTime) / 1000;
     
     // 1. 🟢 მწვანე სენსორი
-    const wd = sample(sW.el,ctx8,8); let gc = 0;
+    const wd = sample(sW.el, ctx8, 8); let gc = 0;
     for (let i = 0; i < wd.length; i += 4) if (isGreen(wd[i], wd[i + 1], wd[i + 2], parseInt(greenStrictSl.value))) gc++;
     if (gc >= 16 * 0.25 && (ts - lastWheelPassTime) > 1.5) {
       sW.el.classList.add('act'); rawWheelPasses.push(ts); lastWheelPassTime = ts;
       setTimeout(()=>sW.el.classList.remove('act'),150);
     }
     
-    // 2. ⚪ ბურთის სენსორი (პოზიტიური აფეთქების დეტექტორი მუქ ფონზე)
-    const bd = sample(sB.el,ctx16,16);
-    let totalBrightness = 0;
+    // 2. 🌑 ბურთის სენსორი (ახალი Absolute Dual-Trigger)
+    const bd = sample(sB.el, ctx16, 16);
+    let totalB = 0;
     for (let i = 0; i < bd.length; i += 4) {
-      totalBrightness += (0.299*bd[i] + 0.587*bd[i+1] + 0.114*bd[i+2]);
+      totalB += (0.299 * bd[i] + 0.587 * bd[i + 1] + 0.114 * bd[i + 2]);
     }
-    let currentAvg = totalBrightness / 256; // მიმდინარე კადრის საშუალო სიკაშკაშე
+    let currentAvg = totalB / 256;
     
-    if (darkTrackBaseline === -1) {
-      darkTrackBaseline = currentAvg;
+    if (bBaseline === -1) {
+      bBaseline = currentAvg;
     } else {
-      // ბაზისი მუდმივად სწავლობს მუქ ფონს
-      darkTrackBaseline = darkTrackBaseline * 0.95 + currentAvg * 0.05;
+      bBaseline = bBaseline * 0.96 + currentAvg * 0.04;
       
-      // ვზომავთ რამდენად მკვეთრად აინთო სენსორი ბაზისთან შედარებით
-      let lightSpike = currentAvg - darkTrackBaseline;
-      let targetTrigger = parseInt(ballSensSl.value); // სლაიდერის მნიშვნელობა
+      let diff = Math.abs(currentAvg - bBaseline);
+      let targetTrigger = parseInt(ballSensSl.value);
       
-      // თუ სინათლე მკვეთრად ავარდა ზემოთ (თეთრმა ბურთმა გადაუარა მუქ ზოლს)
-      if (lightSpike > targetTrigger && now > ballLockoutUntil) {
+      // რეაგირებს ნებისმიერ მკვეთრ ცვლილებაზე ზუსტ წერტილში
+      if (diff > targetTrigger && now > ballLockoutUntil && bBaseline > 5) {
         sB.el.classList.add('act'); ballPasses.push(ts); ballLockoutUntil = now + 330;
         setTimeout(() => sB.el.classList.remove('act'), 120);
       }
@@ -296,6 +321,7 @@ document.getElementById('btnAnalyze').addEventListener('click', ()=>{
   html+=`<div>${[tN,n1,n2,n3,p1,p2,p3].includes(actualN)?'✅ <b>მოგება!</b>':'❌ რეალური: ['+actualN+'] (AI შესწორდა)'}</div></div>`;
   output.innerHTML=html;
 });
+initCamera();
 </script>
 </body>
 </html>
