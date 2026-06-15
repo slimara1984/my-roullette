@@ -2,7 +2,7 @@
 <html lang="ka">
 <head>
 <meta charset="UTF-8">
-<title>Roulette AI Engine v16.0</title>
+<title>Roulette AI Engine v17.0</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -19,7 +19,7 @@ body{background:#09090b;color:#e4e4e7;font-family:monospace;font-size:11px;overf
 .btn{padding:5px 10px;font-weight:bold;border:none;border-radius:4px;cursor:pointer;font-family:monospace;font-size:11px}
 #btnTab{background:#2563eb;color:#fff}
 #btnSS{background:#dc2626;color:#fff}
-#statusTxt">გათიშული</span>
+#statusTxt{color:#a1a1aa;font-size:11px}
 
 #sliders{display:flex;gap:12px;align-items:center;padding:6px 10px;background:#0f0f11;border-bottom:1px solid #27272a;color:#a1a1aa}
 #sliders input[type=range]{width:70px}
@@ -54,7 +54,7 @@ video{width:100%;height:100%;object-fit:contain}
 <body>
 
 <div id="topBar">
-  <h2>🎰 ROULETTE v16.0</h2>
+  <h2>🎰 ROULETTE v17.0</h2>
   <button id="btnTab" class="btn">📺 კამერა</button>
   <button id="btnSS" class="btn">▶ START</button>
   <span id="statusTxt">გათიშული</span>
@@ -62,7 +62,7 @@ video{width:100%;height:100%;object-fit:contain}
 
 <div id="sliders">
   <label>🟢 მწვანე: <input type="range" id="greenStrict" min="1" max="5" value="3"> <span class="sv" id="sv1">3</span></label>
-  <label>🎯 მგრძნობელობა: <input type="range" id="ballSens" min="5" max="50" value="15"> <span class="sv" id="sv2">15</span></label>
+  <label>🖼 ფონის ცვლილება: <input type="range" id="ballSens" min="5" max="60" value="15"> <span class="sv" id="sv2">15%</span></label>
 </div>
 
 <div id="brainState">
@@ -116,13 +116,15 @@ function sl(id,outId,suffix=""){
   const e=document.getElementById(id),o=document.getElementById(outId);
   e.addEventListener('input',()=>{o.textContent=e.value+suffix}); return e;
 }
-const greenStrictSl=sl('greenStrict','sv1'), ballSensSl=sl('ballSens','sv2');
+const greenStrictSl=sl('greenStrict','sv1'), ballSensSl=sl('ballSens','sv2',"%");
 const sW={el:document.getElementById('sw'),act:false}, sB={el:document.getElementById('sb'),act:false};
 
 let isRecording=false, rawWheelPasses=[], ballPasses=[], startTime=0, stopTime=0, lastWheelPassTime=-999, ballLockoutUntil=0;
 let currentFacingMode = "environment";
 
-let bBaseline = -1;
+// ფონის მეხსიერების მასივი (16x16 მატრიცისთვის)
+let staticBackground = null;
+let bgInitFrames = 0;
 
 async function initCamera() {
   if (vid.srcObject) {
@@ -152,8 +154,9 @@ document.getElementById('btnTab').addEventListener('click', () => {
 btnSS.addEventListener('click', ()=>{
   isRecording=!isRecording;
   if(isRecording){
-    startTime=performance.now(); rawWheelPasses=[]; ballPasses=[]; ballLockoutUntil=0; lastWheelPassTime=-999; bBaseline = -1;
-    btnSS.textContent='⏹ STOP'; btnSS.style.background='#b91c1c'; statusTxt.textContent='იწერება...';
+    startTime=performance.now(); rawWheelPasses=[]; ballPasses=[]; ballLockoutUntil=0; lastWheelPassTime=-999;
+    staticBackground = null; bgInitFrames = 0; // ძველი ფონის წაშლა ახალი ჩაწერისას
+    btnSS.textContent='⏹ STOP'; btnSS.style.background='#b91c1c'; statusTxt.textContent='ფონის დამახსოვრება...';
   }else{
     stopTime=performance.now(); btnSS.textContent='▶ START'; btnSS.style.background='#16a34a'; statusTxt.textContent='მზადაა';
   }
@@ -179,14 +182,11 @@ function setTouchDrag(el){
 }
 setTouchDrag(sW.el); setTouchDrag(sB.el);
 
-// აბსოლუტური კოორდინატების გამოთვლის ახალი სისტემა
 function sample(el, ctx, sz) {
   const vw = vid.videoWidth, vh = vid.videoHeight;
   if (!vw || !vh) return new Uint8ClampedArray(sz * sz * 4);
 
   const videoRect = vid.getBoundingClientRect();
-  
-  // ვპოულობთ ვიდეოს რეალურ ზომებს ეკრანზე (object-fit: contain-ის გათვალისწინებით)
   const videoRatio = vw / vh;
   const elementRatio = videoRect.width / videoRect.height;
   
@@ -203,11 +203,9 @@ function sample(el, ctx, sz) {
     offsetY = (videoRect.height - realHeight) / 2;
   }
 
-  // სენსორის ცენტრის პოზიცია ვიდეოს მიმართ
   const sensorX = (el.offsetLeft + el.offsetWidth / 2) - videoRect.left - offsetX;
   const sensorY = (el.offsetTop + el.offsetHeight / 2) - videoRect.top - offsetY;
 
-  // გადაყვანა ვიდეოს რეალურ პიქსელებში
   const srcX = (sensorX / realWidth) * vw - (sz / 2);
   const srcY = (sensorY / realHeight) * vh - (sz / 2);
 
@@ -230,24 +228,36 @@ function syncProcessingLoop() {
       setTimeout(()=>sW.el.classList.remove('act'),150);
     }
     
-    // 2. 🌑 ბურთის სენსორი (ახალი Absolute Dual-Trigger)
+    // 2. 🖼 ბურთის სენსორი (Background Subtraction)
     const bd = sample(sB.el, ctx16, 16);
-    let totalB = 0;
-    for (let i = 0; i < bd.length; i += 4) {
-      totalB += (0.299 * bd[i] + 0.587 * bd[i + 1] + 0.114 * bd[i + 2]);
-    }
-    let currentAvg = totalB / 256;
     
-    if (bBaseline === -1) {
-      bBaseline = currentAvg;
+    // თუ ფონი ჯერ არ დაგვიმახსოვრებია, ვიწერთ პირველ კადრებს
+    if (staticBackground === null) {
+      staticBackground = new Float32Array(bd.length);
+      for(let i=0; i<bd.length; i++) staticBackground[i] = bd[i];
+      bgInitFrames = 1;
+    } else if (bgInitFrames < 15) { 
+      // პირველი 15 კადრით ვაზუსტებთ სუფთა ფონს უკეთესი სიზუსტისთვის
+      for(let i=0; i<bd.length; i++) staticBackground[i] = staticBackground[i] * 0.8 + bd[i] * 0.2;
+      bgInitFrames++;
+      if(bgInitFrames === 15) statusTxt.textContent = 'აქტიურია';
     } else {
-      bBaseline = bBaseline * 0.96 + currentAvg * 0.04;
+      // აქ უკვე მიმდინარეობს მუშაობა: ვადარებთ ახალ კადრს ძველ ფონს
+      let totalPixelDiff = 0;
+      for (let i = 0; i < bd.length; i += 4) {
+        let rDiff = Math.abs(bd[i] - staticBackground[i]);
+        let gDiff = Math.abs(bd[i+1] - staticBackground[i+1]);
+        let bDiff = Math.abs(bd[i+2] - staticBackground[i+2]);
+        
+        // საშუალო პიქსელური ცვლილება
+        totalPixelDiff += (rDiff + gDiff + bDiff) / 3;
+      }
       
-      let diff = Math.abs(currentAvg - bBaseline);
-      let targetTrigger = parseInt(ballSensSl.value);
+      let averageFrameChange = totalPixelDiff / 256; // ცვლილება პროცენტულად/ერთეულებში
+      let threshold = parseInt(ballSensSl.value);
       
-      // რეაგირებს ნებისმიერ მკვეთრ ცვლილებაზე ზუსტ წერტილში
-      if (diff > targetTrigger && now > ballLockoutUntil && bBaseline > 5) {
+      // თუ ფონი შეიცვალა იმაზე მეტად, ვიდრე სლაიდერითაა მოთხოვნილი
+      if (averageFrameChange > threshold && now > ballLockoutUntil) {
         sB.el.classList.add('act'); ballPasses.push(ts); ballLockoutUntil = now + 330;
         setTimeout(() => sB.el.classList.remove('act'), 120);
       }
