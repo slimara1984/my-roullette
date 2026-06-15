@@ -1,34 +1,265 @@
 <!DOCTYPE html>
 <html lang="ka">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roulette App</title>
-    <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f0f0f0; }
-        button { padding: 15px 30px; font-size: 18px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 8px; }
-        video { width: 100%; max-width: 400px; margin-top: 20px; border: 2px solid #333; }
-    </style>
+<meta charset="UTF-8">
+<title>Roulette AI Engine</title>
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1041/1041048.png">
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#09090b;color:#e4e4e7;font-family:monospace;font-size:11px;overflow:hidden;height:100vh;touch-action:none}
+
+#topBar{display:flex;align-items:center;gap:6px;padding:8px 10px;background:#141417;border-bottom:1px solid #27272a}
+#topBar h2{color:#00ffaa;font-size:11px;letter-spacing:0.5px}
+.btn{padding:5px 10px;font-weight:bold;border:none;border-radius:4px;cursor:pointer;font-family:monospace;font-size:11px}
+#btnTab{background:#2563eb;color:#fff}
+#btnSS{background:#dc2626;color:#fff}
+#statusTxt{color:#a1a1aa;font-size:11px}
+
+#sliders{display:flex;gap:12px;align-items:center;padding:6px 10px;background:#0f0f11;border-bottom:1px solid #27272a;color:#a1a1aa}
+#sliders input[type=range]{width:70px}
+.sv{font-weight:bold;color:#22c55e}
+
+#brainState{background:#111827;border-bottom:1px solid #374151;padding:5px 10px;font-size:9px;color:#9ca3af;display:flex;gap:15px}
+.brain-val{color:#38bdf8;font-weight:bold}
+
+#main{display:flex;flex-direction:column;height:calc(100vh - 85px);width:100vw}
+#videoSide{flex:1;position:relative;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden}
+video{width:100%;height:100%;object-fit:contain}
+
+/* სენსორები მორგებულია თითით სატარებლად (Touch Optimized) */
+.sensor{position:absolute;border:2px dashed #fff;border-radius:50%;width:35px;height:35px;z-index:10;touch-action:none}
+#sw{border-color:#22c55e;left:35%;top:45%}
+#sw.act{background:rgba(34,197,94,.55);box-shadow:0 0 12px #22c55e}
+#sb{border-color:#eab308;left:35%;top:25%}
+#sb.act{background:rgba(234,179,8,.55);box-shadow:0 0 12px #eab308}
+.resizer{position:absolute;right:-2px;bottom:-2px;width:10px;height:10px;background:#fff;border-radius:50%}
+
+#panel{height:160px;min-height:160px;background:#141417;padding:8px;border-top:1px solid #27272a;display:flex;flex-direction:column;gap:5px;overflow-y:auto}
+.panel-grid{display:flex;gap:8px;align-items:center}
+.inp-row{display:flex;align-items:center;gap:4px;flex:1}
+.inp-row label{color:#a1a1aa;font-size:10px}
+.inp-row input{width:40px;background:#09090b;color:#fbbf24;border:1px solid #3f3f46;padding:4px;text-align:center;font-weight:bold;border-radius:3px;font-size:11px}
+#btnAnalyze{background:#7c3aed;color:#fff;padding:6px;font-size:11px;border:none;border-radius:4px;font-weight:bold;flex:1}
+
+.ratio-box{background:#1e1b4b;padding:4px 6px;border-radius:4px;border:1px solid #4338ca;font-size:10px;line-height:1.3;display:flex;justify-content:space-between}
+.pred-box{background:#1e3a8a;border:2px solid #3b82f6;padding:6px;border-radius:6px;margin-top:2px}
+.log-entry{background:#1c1c1f;padding:2px 4px;border-radius:3px;margin-bottom:2px;display:flex;justify-content:space-between;border:1px solid #27272a}
+.warn-box{background:#78350f;border:1px solid #f59e0b;padding:3px;border-radius:3px;font-size:9px;color:#fef3c7}
+</style>
 </head>
 <body>
 
-    <h1>Roulette App</h1>
-    <button onclick="startCamera()">ვიდეოს ჩართვა</button>
-    <br>
-    <video id="videoElement" autoplay playsinline></video>
+<div id="topBar">
+  <h2>🎰 ROULETTE ADAPTIVE v12.0</h2>
+  <button id="btnTab" class="btn">📺 ვიდეო</button>
+  <button id="btnSS" class="btn">▶ START</button>
+  <span id="statusTxt">გათიშული</span>
+</div>
 
-    <script>
-        async function startCamera() {
-            const video = document.getElementById('videoElement');
-            try {
-                // ცდილობს ჩართოს კამერა (ეს ყველაზე სტაბილურია აიფონზე)
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                video.srcObject = stream;
-            } catch (err) {
-                console.error("შეცდომა:", err);
-                alert("ვიდეოს ჩართვა ვერ მოხერხდა. დარწმუნდით, რომ აპლიკაციას აქვს კამერის ნებართვა.");
-            }
-        }
-    </script>
+<div id="sliders">
+  <label>🟢 მწვანე: <input type="range" id="greenStrict" min="1" max="5" value="3"> <span class="sv" id="sv1">3</span></label>
+  <label>🟡 ბურთი: <input type="range" id="ballSens" min="5" max="95" value="35"> <span class="sv" id="sv2">35%</span></label>
+</div>
+
+<div id="brainState">
+  <span>🧠 Gamma: <span class="brain-val" id="bGamma">0.1450</span></span>
+  <span>📐 ოფსეტი: <span class="brain-val" id="bOffset">-4.00</span></span>
+  <span>📊 სპინები: <span class="brain-val" id="bSpins">0</span></span>
+</div>
+
+<div id="main">
+  <div id="videoSide">
+    <video id="vid" autoplay playsinline muted></video>
+    <div id="sw" class="sensor"><div class="resizer"></div></div>
+    <div id="sb" class="sensor"><div class="resizer"></div></div>
+  </div>
+
+  <div id="panel">
+    <div class="panel-grid">
+      <div class="inp-row"><label>⏮ საწყისი:</label><input type="number" id="startNum" value="0"></div>
+      <div class="inp-row"><label>⏭ ჩავარდა:</label><input type="number" id="actualNum" value="0"></div>
+      <button id="btnAnalyze">🔮 ანალიზი</button>
+    </div>
+    <div id="analysisOutput" style="color:#71717a;margin-top:2px">შემოყვანეთ მონაცემები...</div>
+  </div>
+</div>
+
+<canvas id="c8" style="display:none" width="8" height="8"></canvas>
+<canvas id="c16" style="display:none" width="16" height="16"></canvas>
+
+<script>
+const WHL=[0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
+
+let AI_STATE = {
+  gamma: parseFloat(localStorage.getItem('ai_gamma')) || 0.1450,
+  hardwareOffset: parseFloat(localStorage.getItem('ai_offset')) || -4.00,
+  totalSpinsLearned: parseInt(localStorage.getItem('ai_spins')) || 0
+};
+
+function updateBrainDashboard(){
+  document.getElementById('bGamma').textContent = AI_STATE.gamma.toFixed(4);
+  document.getElementById('bOffset').textContent = AI_STATE.hardwareOffset.toFixed(2);
+  document.getElementById('bSpins').textContent = AI_STATE.totalSpinsLearned;
+}
+updateBrainDashboard();
+
+const vid=document.getElementById('vid'), wrapper=document.getElementById('videoSide');
+const ctx8=document.getElementById('c8').getContext('2d',{willReadFrequently:true});
+const ctx16=document.getElementById('c16').getContext('2d',{willReadFrequently:true});
+const statusTxt=document.getElementById('statusTxt'), output=document.getElementById('analysisOutput'), btnSS=document.getElementById('btnSS');
+
+function sl(id,outId,p=false){
+  const e=document.getElementById(id),o=document.getElementById(outId);
+  e.addEventListener('input',()=>{o.textContent=e.value+(p?'%':'')}); return e;
+}
+const greenStrictSl=sl('greenStrict','sv1'), ballSensSl=sl('ballSens','sv2',true);
+const sW={el:document.getElementById('sw'),act:false}, sB={el:document.getElementById('sb'),act:false};
+
+let isRecording=false, rawWheelPasses=[], ballPasses=[], startTime=0, stopTime=0, lastWheelPassTime=-999, lastBallFrame=null, ballLockoutUntil=0;
+
+document.getElementById('btnTab').addEventListener('click', async()=>{
+  try{
+    // შეცვლილია getUserMedia-ზე და დაყენებულია უკანა კამერა (facingMode: environment)
+    vid.srcObject = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});
+    statusTxt.textContent='აქტიურია'; statusTxt.style.color='#3b82f6';
+  }catch(e){alert(e.message)}
+});
+
+btnSS.addEventListener('click', ()=>{
+  isRecording=!isRecording;
+  if(isRecording){
+    startTime=performance.now(); rawWheelPasses=[]; ballPasses=[]; lastBallFrame=null; ballLockoutUntil=0; lastWheelPassTime=-999;
+    btnSS.textContent='⏹ STOP'; btnSS.style.background='#b91c1c'; statusTxt.textContent='იწერება...';
+  }else{
+    stopTime=performance.now(); btnSS.textContent='▶ START'; btnSS.style.background='#16a34a'; statusTxt.textContent='მზადაა';
+  }
+});
+
+function setTouchDrag(el){
+  let d=false,r=false,sx,sy,sl2,st,sw2;
+  function start(x,y,isResizer){
+    if(isResizer){r=true;sw2=el.offsetWidth;}
+    else{d=true;sl2=el.offsetLeft;st=el.offsetTop;}
+    sx=x;sy=y;
+  }
+  function move(x,y){
+    if(d){el.style.left=(sl2+x-sx)+'px';el.style.top=(st+y-sy)+'px';}
+    if(r){const s=Math.max(16,sw2+x-sx);el.style.width=s+'px';el.style.height=s+'px';}
+  }
+  el.addEventListener('mousedown',e=>start(e.clientX,e.clientY,e.target.className==='resizer'));
+  el.addEventListener('touchstart',e=>{const t=e.touches[0];start(t.clientX,t.clientY,e.target.className==='resizer');});
+  window.addEventListener('mousemove',e=>{if(d||r) move(e.clientX,e.clientY);});
+  window.addEventListener('touchmove',e=>{if(d||r){const t=e.touches[0];move(t.clientX,t.clientY);}});
+  window.addEventListener('mouseup',()=>{d=false;r=false;});
+  window.addEventListener('touchend',()=>{d=false;r=false;});
+}
+setTouchDrag(sW.el); setTouchDrag(sB.el);
+
+function sample(el,ctx,sz){
+  const vw=vid.videoWidth, vh=vid.videoHeight; if(!vw||!vh) return new Uint8ClampedArray(sz*sz*4);
+  const r=vid.getBoundingClientRect(), scaleX=vw/r.width, scaleY=vh/r.height;
+  const sx=((el.offsetLeft+wrapper.offsetLeft)-r.left)*scaleX, sy=((el.offsetTop+wrapper.offsetTop)-r.top)*scaleY;
+  ctx.clearRect(0,0,sz,sz); ctx.drawImage(vid,sx,sy,Math.max(4,el.offsetWidth*scaleX),Math.max(4,el.offsetHeight*scaleY),0,0,sz,sz);
+  return ctx.getImageData(0,0,sz,sz).data;
+}
+
+function isGreen(r,g,b,lv){ return g>(48+lv*7) && g>r*(1.12+lv*0.06) && g>b*(1.12+lv*0.06) && r<g*(0.88-lv*0.05); }
+
+function syncProcessingLoop() {
+  if (isRecording && vid.readyState >= 3) {
+    const now = performance.now(), ts = (now - startTime) / 1000;
+    const wd = sample(sW.el,ctx8,8); let gc = 0;
+    for (let i = 0; i < wd.length; i += 4) if (isGreen(wd[i], wd[i + 1], wd[i + 2], parseInt(greenStrictSl.value))) gc++;
+    if (gc >= 16 * 0.25 && (ts - lastWheelPassTime) > 1.5) {
+      sW.el.classList.add('act'); rawWheelPasses.push(ts); lastWheelPassTime = ts;
+      setTimeout(()=>sW.el.classList.remove('act'),150);
+    }
+    const bd = sample(sB.el,ctx16,16), curL = new Float32Array(256);
+    for (let i = 0, j = 0; i < bd.length; i += 4, j++) curL[j] = 0.299*bd[i] + 0.587*bd[i+1] + 0.114*bd[i+2];
+    if (lastBallFrame) {
+      let ch = 0, th = Math.max(1.5, (100 - parseInt(ballSensSl.value)) * 0.35);
+      for (let j = 0; j < 256; j++) if (Math.abs(curL[j] - lastBallFrame[j]) > th) ch++;
+      if (ch >= 2 && now > ballLockoutUntil) {
+        sB.el.classList.add('act'); ballPasses.push(ts); ballLockoutUntil = now + 300;
+        setTimeout(() => sB.el.classList.remove('act'), 120);
+      }
+    }
+    lastBallFrame = curL;
+  }
+  if(vid.requestVideoFrameCallback) vid.requestVideoFrameCallback(syncProcessingLoop); else requestAnimationFrame(syncProcessingLoop);
+}
+if(vid.requestVideoFrameCallback) vid.requestVideoFrameCallback(syncProcessingLoop); else requestAnimationFrame(syncProcessingLoop);
+
+function calculatePhysics(wheelMS, ballMS, currentGamma, currentOffset) {
+  const omega_b = (2 * Math.PI) / (ballMS / 1000.0);
+  const omega_crit = 5.30; 
+  if (omega_b <= omega_crit) return { offset: currentOffset, laps: 0 };
+  const t_drop = Math.log(omega_b / omega_crit) / currentGamma;
+  const theta_ball = (omega_b / currentGamma) * (1 - Math.exp(-currentGamma * t_drop));
+  const ballLapsRemaining = theta_ball / (2 * Math.PI);
+  const omega_w = (2 * Math.PI) / (wheelMS / 1000.0);
+  const theta_wheel = omega_w * t_drop;
+  return { offset: currentOffset + (((ballLapsRemaining * 37) - (theta_wheel / (2 * Math.PI) * 37)) % 37), t_drop: t_drop };
+}
+
+document.getElementById('btnAnalyze').addEventListener('click', ()=>{
+  const startN=parseInt(document.getElementById('startNum').value), actualN=parseInt(document.getElementById('actualNum').value);
+  if(isNaN(startN)||isNaN(actualN)) return alert("შეავსეთ რიცხვები!");
+  
+  let wLaps=[]; rawWheelPasses.forEach(t=>{ if(!wLaps.length||(t-wLaps[wLaps.length-1])>1.5) wLaps.push(t); });
+  if(wLaps.length < 2) return alert("დაფის არასაკმარისი მონაცემები!");
+  const t_zero_start = wLaps[wLaps.length - 2], t_zero_end = wLaps[wLaps.length - 1];
+  const wheelMS = Math.round((t_zero_end - t_zero_start) * 1000);
+  
+  let fbp=[]; if(ballPasses.length){ fbp.push(ballPasses[0]); let elt=0.5; for(let i=1;i<ballPasses.length;i++){ if(ballPasses[i]-ballPasses[i-1]<0.30) continue; let lc=Math.round((ballPasses[i]-ballPasses[i-1])/elt); if(lc<1)lc=1; if(lc>1&&lc<5){let st=(ballPasses[i]-ballPasses[i-1])/lc;for(let j=1;j<lc;j++)fbp.push(ballPasses[i-1]+st*j);} fbp.push(ballPasses[i]); elt=(ballPasses[i]-ballPasses[i-1])/lc; } }
+  let validHits = fbp.filter(t => t >= t_zero_start && t <= t_zero_end);
+  if(validHits.length < 2) return alert("ბურთის არასაკმარისი იმპულსები!");
+
+  let calculatedIntervals = [];
+  for(let i=1; i<validHits.length; i++) {
+    let diff = Math.round((validHits[i] - validHits[i-1]) * 1000);
+    if(diff > 350 && diff < 1800) calculatedIntervals.push(diff);
+  }
+  if(calculatedIntervals.length === 0) return alert("ინტერვალები ვერ მოიძებნა!");
+  
+  let ballMS = calculatedIntervals[calculatedIntervals.length - 1], msgWarning = "";
+  if(calculatedIntervals.length >= 2) {
+    let prev = calculatedIntervals[calculatedIntervals.length - 2];
+    if(ballMS < prev * 0.75) { ballMS = Math.round(prev * 1.06); msgWarning = "⚠️ აჩქარების ანომალია გაიფილტრა!"; }
+  }
+
+  let run = calculatePhysics(wheelMS, ballMS, AI_STATE.gamma, AI_STATE.hardwareOffset);
+  const lapDur = wheelMS / 1000.0;
+  let lp = ((validHits[validHits.length - 1] - t_zero_start) / lapDur) % 1; if(lp<0) lp+=1;
+  let earlyIndex = (WHL.indexOf(startN) + Math.round(lp * 37)) % 37;
+  let predictedIndex = Math.round(earlyIndex + run.offset) % 37; if(predictedIndex<0) predictedIndex+=37;
+  let tN = WHL[predictedIndex];
+
+  let actualIndex = WHL.indexOf(actualN), errorSectors = actualIndex - predictedIndex;
+  if (errorSectors > 18) errorSectors -= 37; if (errorSectors < -18) errorSectors += 37;
+
+  if (Math.abs(errorSectors) > 0 && Math.abs(errorSectors) < 15) {
+    AI_STATE.hardwareOffset += errorSectors * 0.12;
+    if(run.t_drop > 0) AI_STATE.gamma -= (errorSectors / run.t_drop) * 0.0008;
+    AI_STATE.gamma = Math.max(0.08, Math.min(0.22, AI_STATE.gamma)); AI_STATE.totalSpinsLearned++;
+    localStorage.setItem('ai_gamma', AI_STATE.gamma); localStorage.setItem('ai_offset', AI_STATE.hardwareOffset); localStorage.setItem('ai_spins', AI_STATE.totalSpinsLearned);
+    updateBrainDashboard();
+  }
+
+  let n3=WHL[(predictedIndex-3+37)%37], n2=WHL[(predictedIndex-2+37)%37], n1=WHL[(predictedIndex-1+37)%37], p1=WHL[(predictedIndex+1)%37], p2=WHL[(predictedIndex+2)%37], p3=WHL[(predictedIndex+3)%37];
+
+  let html=`<div class="ratio-box"><span>⚙️ ${wheelMS}ms</span><span>🥎 ${ballMS}ms</span><span>🎯 R: ${(wheelMS/ballMS).toFixed(1)}</span></div>`;
+  if(msgWarning) html+=`<div class="warn-box">${msgWarning}</div>`;
+  html+=`<div class="pred-box">🔮 <b>პროგნოზი: ${tN}</b><br>🎯 ზონა: <span style="color:#fbbf24">${n3} ${n2} ${n1} [${tN}] ${p1} ${p2} ${p3}</span><br>`;
+  html+=`<div>${[tN,n1,n2,n3,p1,p2,p3].includes(actualN)?'✅ <b>მოგება!</b>':'❌ რეალური: ['+actualN+'] (AI შესწორდა)'}</div></div>`;
+  output.innerHTML=html;
+});
+</script>
 </body>
 </html>
