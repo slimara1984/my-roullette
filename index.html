@@ -2,7 +2,7 @@
 <html lang="ka">
 <head>
 <meta charset="UTF-8">
-<title>Roulette AI Engine v12.5</title>
+<title>Roulette AI v12.6</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -16,38 +16,58 @@ body{background:#09090b;color:#e4e4e7;font-family:monospace;font-size:11px;overf
 #btnTab{background:#2563eb;color:#fff}
 #btnSS{background:#dc2626;color:#fff}
 #statusTxt{color:#a1a1aa;font-size:11px}
-#sliders{display:flex;gap:12px;align-items:center;padding:6px 10px;background:#0f0f11;border-bottom:1px solid #27272a;color:#a1a1aa;flex-wrap:wrap}
-#sliders input[type=range]{width:70px}
+#sliders{display:flex;gap:10px;align-items:center;padding:6px 10px;background:#0f0f11;border-bottom:1px solid #27272a;color:#a1a1aa;flex-wrap:wrap}
+#sliders input[type=range]{width:65px}
 .sv{font-weight:bold;color:#22c55e}
 #brainState{background:#111827;border-bottom:1px solid #374151;padding:5px 10px;font-size:9px;color:#9ca3af;display:flex;gap:10px;flex-wrap:wrap}
 .brain-val{color:#38bdf8;font-weight:bold}
 #main{display:flex;flex-direction:column;height:calc(100vh - 95px);width:100vw}
 #videoSide{flex:1;position:relative;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden}
 video{width:100%;height:100%;object-fit:contain}
-/* მწვანე დაფის სენსორი - წრიული */
-.sensor{position:absolute;border:2px dashed #fff;z-index:10;touch-action:none}
-#sw{border-color:#22c55e;border-radius:50%;width:35px;height:35px;left:35%;top:45%}
+
+/* ======== სენსორები ======== */
+.sensor{position:absolute;z-index:10;touch-action:none;cursor:move}
+
+/* მწვანე - წრიული */
+#sw{border:2px dashed #22c55e;border-radius:50%;width:35px;height:35px;left:35%;top:45%}
 #sw.act{background:rgba(34,197,94,.55);box-shadow:0 0 12px #22c55e}
-/* ბურთის სენსორი - ჰორიზონტალური ზოლი ვერცხლის ბილიკზე */
-#sb{border-color:#a78bfa;border-radius:6px;width:70px;height:20px;left:35%;top:25%}
-#sb.act{background:rgba(167,139,250,.45);box-shadow:0 0 14px #a78bfa}
-.resizer{position:absolute;right:-2px;bottom:-2px;width:10px;height:10px;background:#fff;border-radius:50%;cursor:se-resize}
+
+/* ბურთი - თავისუფალი ზომის ოთხკუთხედი */
+#sb{border:2px solid #a78bfa;border-radius:5px;width:70px;height:30px;left:35%;top:25%}
+#sb.act{background:rgba(167,139,250,.40);box-shadow:0 0 16px #a78bfa}
+
+/* resize სახელური - ქვედა-მარჯვენა კუთხე */
+.rsz{
+  position:absolute;right:-1px;bottom:-1px;
+  width:14px;height:14px;
+  background:#a78bfa;border-radius:3px 0 3px 0;
+  cursor:se-resize;z-index:11;
+  display:flex;align-items:center;justify-content:center;
+  font-size:8px;color:#fff;line-height:1
+}
+.rsz-w{
+  position:absolute;right:-1px;bottom:-1px;
+  width:14px;height:14px;
+  background:#22c55e;border-radius:3px 0 3px 0;
+  cursor:se-resize;z-index:11
+}
+
 #panel{height:155px;min-height:155px;background:#141417;padding:8px;border-top:1px solid #27272a;display:flex;flex-direction:column;gap:5px;overflow-y:auto}
 .panel-grid{display:flex;gap:8px;align-items:center}
 .inp-row{display:flex;align-items:center;gap:4px;flex:1}
 .inp-row label{color:#a1a1aa;font-size:10px}
 .inp-row input{width:40px;background:#09090b;color:#fbbf24;border:1px solid #3f3f46;padding:4px;text-align:center;font-weight:bold;border-radius:3px;font-size:11px}
-#btnAnalyze{background:#7c3aed;color:#fff;padding:6px;font-size:11px;border:none;border-radius:4px;font-weight:bold;flex:1}
+#btnAnalyze{background:#7c3aed;color:#fff;padding:6px;font-size:11px;border:none;border-radius:4px;font-weight:bold;flex:1;cursor:pointer}
 .ratio-box{background:#1e1b4b;padding:4px 6px;border-radius:4px;border:1px solid #4338ca;font-size:10px;line-height:1.3;display:flex;justify-content:space-between}
 .pred-box{background:#1e3a8a;border:2px solid #3b82f6;padding:6px;border-radius:6px;margin-top:2px}
 .warn-box{background:#78350f;border:1px solid #f59e0b;padding:3px;border-radius:3px;font-size:9px;color:#fef3c7}
-#dbgBar{position:absolute;bottom:4px;left:4px;right:4px;background:rgba(0,0,0,.75);color:#a78bfa;font-size:9px;padding:2px 6px;border-radius:3px;z-index:20;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#dbgBar{position:absolute;bottom:4px;left:4px;right:4px;background:rgba(0,0,0,.80);color:#a78bfa;font-size:9px;padding:3px 6px;border-radius:3px;z-index:20;pointer-events:none}
 </style>
 </head>
 <body>
 
 <div id="topBar">
-  <h2>🎰 ROULETTE v12.5</h2>
+  <h2>🎰 ROULETTE v12.6</h2>
   <button id="btnTab" class="btn">📺 ვიდეო</button>
   <button id="btnSS" class="btn">▶ START</button>
   <span id="statusTxt">გათიშული</span>
@@ -55,24 +75,27 @@ video{width:100%;height:100%;object-fit:contain}
 
 <div id="sliders">
   <label>🟢 მწვანე: <input type="range" id="greenStrict" min="1" max="5" value="3"> <span class="sv" id="sv1">3</span></label>
-  <label>⚪ ანარეკლი: <input type="range" id="reflectSens" min="8" max="80" value="28"> <span class="sv" id="sv2">28</span></label>
+  <label>⚪ მგრძნობ: <input type="range" id="ballSens" min="2" max="40" value="12"> <span class="sv" id="sv2">12</span></label>
+  <label>⏱ lockout: <input type="range" id="lockoutMs" min="100" max="800" value="300"> <span class="sv" id="sv3">300</span>ms</label>
 </div>
 
 <div id="brainState">
-  <span>🧠 Gamma: <span class="brain-val" id="bGamma">0.1450</span></span>
-  <span>📐 ოფსეტი: <span class="brain-val" id="bOffset">-4.00</span></span>
-  <span>📊 სპინები: <span class="brain-val" id="bSpins">0</span></span>
-  <span>🥎 Hz: <span class="brain-val" id="bBallHz">--</span></span>
+  <span>🧠 Gamma:<span class="brain-val" id="bGamma">0.1450</span></span>
+  <span>📐 Offset:<span class="brain-val" id="bOffset">-4.00</span></span>
+  <span>📊 Spins:<span class="brain-val" id="bSpins">0</span></span>
+  <span>🥎 Hz:<span class="brain-val" id="bBallHz">--</span></span>
+  <span>🔴 Hits:<span class="brain-val" id="bHits">0</span></span>
 </div>
 
 <div id="main">
   <div id="videoSide">
     <video id="vid" autoplay playsinline muted></video>
-    <div id="sw" class="sensor"><div class="resizer"></div></div>
-    <div id="sb" class="sensor"><div class="resizer"></div></div>
+    <!-- მწვანე სენსორი -->
+    <div id="sw" class="sensor"><div class="rsz-w"></div></div>
+    <!-- ბურთის სენსორი -->
+    <div id="sb" class="sensor"><div class="rsz">↘</div></div>
     <div id="dbgBar">▶ START დააჭირეთ...</div>
   </div>
-
   <div id="panel">
     <div class="panel-grid">
       <div class="inp-row"><label>⏮ საწყისი:</label><input type="number" id="startNum" value="0"></div>
@@ -83,447 +106,348 @@ video{width:100%;height:100%;object-fit:contain}
   </div>
 </div>
 
-<!-- canvas-ები hidden -->
 <canvas id="c8"    style="display:none" width="8"  height="8"></canvas>
-<canvas id="cBall" style="display:none" width="32" height="8"></canvas>
+<canvas id="cBall" style="display:none" width="24" height="24"></canvas>
 
 <script>
-// ================================================================
-// ROULETTE AI v12.5 — Smart Ball Reflect-Strip Detector
-// ================================================================
+// ============================================================
+// ROULETTE AI v12.6
+// ============================================================
+const WHL=[0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
 
-const WHL = [0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
-
-// --- AI მდგომარეობა ---
-let AI_STATE = {
-  gamma:            parseFloat(localStorage.getItem('ai_gamma'))  || 0.1450,
-  hardwareOffset:   parseFloat(localStorage.getItem('ai_offset')) || -4.00,
-  totalSpinsLearned:parseInt(localStorage.getItem('ai_spins'))    || 0
+let AI={
+  gamma:          parseFloat(localStorage.getItem('ai_gamma'))  || 0.1450,
+  hardwareOffset: parseFloat(localStorage.getItem('ai_offset')) || -4.00,
+  spins:          parseInt(localStorage.getItem('ai_spins'))    || 0
 };
-
-function updateBrainDashboard(){
-  document.getElementById('bGamma').textContent  = AI_STATE.gamma.toFixed(4);
-  document.getElementById('bOffset').textContent = AI_STATE.hardwareOffset.toFixed(2);
-  document.getElementById('bSpins').textContent  = AI_STATE.totalSpinsLearned;
+function saveBrain(){ localStorage.setItem('ai_gamma',AI.gamma); localStorage.setItem('ai_offset',AI.hardwareOffset); localStorage.setItem('ai_spins',AI.spins); }
+function updateDash(){
+  document.getElementById('bGamma').textContent  = AI.gamma.toFixed(4);
+  document.getElementById('bOffset').textContent = AI.hardwareOffset.toFixed(2);
+  document.getElementById('bSpins').textContent  = AI.spins;
 }
-updateBrainDashboard();
+updateDash();
 
-// --- DOM ---
-const vid       = document.getElementById('vid');
-const wrapper   = document.getElementById('videoSide');
-const ctx8      = document.getElementById('c8').getContext('2d',{willReadFrequently:true});
-const ctxBall   = document.getElementById('cBall').getContext('2d',{willReadFrequently:true});
+const vid     = document.getElementById('vid');
+const wrapper = document.getElementById('videoSide');
+const ctx8    = document.getElementById('c8').getContext('2d',{willReadFrequently:true});
+const ctxB    = document.getElementById('cBall').getContext('2d',{willReadFrequently:true});
+const dbgBar  = document.getElementById('dbgBar');
+const btnSS   = document.getElementById('btnSS');
 const statusTxt = document.getElementById('statusTxt');
-const output    = document.getElementById('analysisOutput');
-const btnSS     = document.getElementById('btnSS');
-const dbgBar    = document.getElementById('dbgBar');
-const sW        = {el:document.getElementById('sw')};
-const sB        = {el:document.getElementById('sb')};
+const output  = document.getElementById('analysisOutput');
+const elSW    = document.getElementById('sw');
+const elSB    = document.getElementById('sb');
 
-// --- სლაიდერები ---
-function sl(id, outId){
-  const e = document.getElementById(id), o = document.getElementById(outId);
-  e.addEventListener('input', () => { o.textContent = e.value; });
-  return e;
+// სლაიდერები
+function makeSl(id,outId){ const e=document.getElementById(id),o=document.getElementById(outId); e.addEventListener('input',()=>o.textContent=e.value); return e; }
+const greenSl   = makeSl('greenStrict','sv1');
+const ballSensSl= makeSl('ballSens','sv2');
+const lockoutSl = makeSl('lockoutMs','sv3');
+
+// ============================================================
+// DRAG + FREE RESIZE — ორივე სენსორი, სიგანე+სიმაღლე
+// ============================================================
+function makeDragResize(el, rszEl){
+  let mode=null, startX, startY, origL, origT, origW, origH;
+
+  function onStart(x, y, m){
+    mode=m; startX=x; startY=y;
+    origL=el.offsetLeft; origT=el.offsetTop;
+    origW=el.offsetWidth; origH=el.offsetHeight;
+  }
+
+  // mouse
+  rszEl.addEventListener('mousedown', e=>{ e.stopPropagation(); onStart(e.clientX,e.clientY,'resize'); });
+  el.addEventListener('mousedown',    e=>{ if(e.target===rszEl||e.target.parentElement===rszEl) return; onStart(e.clientX,e.clientY,'drag'); });
+
+  // touch
+  rszEl.addEventListener('touchstart', e=>{ e.stopPropagation(); const t=e.touches[0]; onStart(t.clientX,t.clientY,'resize'); },{passive:true});
+  el.addEventListener('touchstart',    e=>{ if(e.target===rszEl||e.target.parentElement===rszEl) return; const t=e.touches[0]; onStart(t.clientX,t.clientY,'drag'); },{passive:true});
+
+  function onMove(x,y){
+    if(!mode) return;
+    const dx=x-startX, dy=y-startY;
+    if(mode==='drag'){
+      el.style.left = Math.max(0, origL+dx)+'px';
+      el.style.top  = Math.max(0, origT+dy)+'px';
+    } else {
+      el.style.width  = Math.max(16, origW+dx)+'px';
+      el.style.height = Math.max(10, origH+dy)+'px';
+    }
+  }
+  function onEnd(){ mode=null; }
+
+  window.addEventListener('mousemove', e=>onMove(e.clientX,e.clientY));
+  window.addEventListener('touchmove', e=>{ const t=e.touches[0]; onMove(t.clientX,t.clientY); },{passive:true});
+  window.addEventListener('mouseup', onEnd);
+  window.addEventListener('touchend', onEnd);
 }
-const greenStrictSl  = sl('greenStrict','sv1');
-const reflectSensSl  = sl('reflectSens','sv2');
 
-// --- ჩაწერის მდგომარეობა ---
-let isRecording     = false;
-let rawWheelPasses  = [];
-let ballPasses      = [];
-let startTime       = 0;
-let stopTime        = 0;
-let lastWheelPassTime = -999;
-let ballLockoutUntil  = 0;
-let currentFacingMode = "environment";
+makeDragResize(elSW, elSW.querySelector('.rsz-w'));
+makeDragResize(elSB, elSB.querySelector('.rsz'));
 
-// ================================================================
-// ბურთის სმარტ დეტექტორის ცვლადები
-// ================================================================
-const BALL_W      = 32;   // canvas სიგანე ბურთის სენსორისთვის
-const BALL_H      = 8;    // canvas სიმაღლე
-
-let baseProfile   = null; // ფონის baseline brightness პროფილი
-let baseCount     = 0;    // baseline კადრების მრიცხველი
-let prevProfile   = null; // წინა კადრის პროფილი
-
-let peakHistory   = [];   // smoothing ფანჯარა
-const PEAK_WINDOW = 5;
-
-// სტეიტ მანქანა: idle → rising → cooldown
-let ballState     = 'idle';
-let consecutiveHigh = 0;
-let consecutiveLow  = 0;
-let lastPeakVal   = 0;
-
-// ================================================================
+// ============================================================
 // კამერა
-// ================================================================
+// ============================================================
+let facingMode="environment";
 async function initCamera(){
-  if(vid.srcObject) vid.srcObject.getTracks().forEach(t => t.stop());
+  if(vid.srcObject) vid.srcObject.getTracks().forEach(t=>t.stop());
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video:{facingMode: currentFacingMode}, audio:false
-    });
-    vid.srcObject = stream;
-    statusTxt.textContent = currentFacingMode==="environment" ? 'უკანა კამერა' : 'წინა კამერა';
-    statusTxt.style.color = '#3b82f6';
+    vid.srcObject = await navigator.mediaDevices.getUserMedia({video:{facingMode},audio:false});
+    statusTxt.textContent = facingMode==='environment'?'უკანა კამერა':'წინა კამერა';
+    statusTxt.style.color='#3b82f6';
   } catch(e){
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({video:true, audio:false});
-      vid.srcObject = stream;
-    } catch(err){ alert("კამერა ვერ ჩაირთო: " + err.message); }
+    try { vid.srcObject = await navigator.mediaDevices.getUserMedia({video:true,audio:false}); }
+    catch(err){ alert('კამერა: '+err.message); }
   }
 }
+document.getElementById('btnTab').addEventListener('click',()=>{ facingMode=facingMode==='environment'?'user':'environment'; initCamera(); });
 
-document.getElementById('btnTab').addEventListener('click', () => {
-  currentFacingMode = currentFacingMode==="environment" ? "user" : "environment";
-  initCamera();
-});
+// ============================================================
+// ჩაწერა START/STOP
+// ============================================================
+let isRec=false, recStart=0;
+let wheelPasses=[], ballPasses=[];
+let lastWheelT=-999, ballLockUntil=0;
 
-// ================================================================
-// START / STOP
-// ================================================================
-btnSS.addEventListener('click', () => {
-  isRecording = !isRecording;
-  if(isRecording){
-    startTime = performance.now();
-    rawWheelPasses = []; ballPasses = [];
-    ballLockoutUntil = 0; lastWheelPassTime = -999;
-    // ბურთის სენსორის reset
-    baseProfile = null; baseCount = 0; prevProfile = null;
-    peakHistory = []; ballState = 'idle';
-    consecutiveHigh = 0; consecutiveLow = 0; lastPeakVal = 0;
-    btnSS.textContent = '⏹ STOP'; btnSS.style.background = '#b91c1c';
-    statusTxt.textContent = 'იწერება...';
+// ბურთის სენსორის state
+let prevAvg=null;         // წინა კადრის საშუალო brightness
+let bgAvg=null;           // baseline (running average)
+let spikeBuf=[];          // spike buffer სმუთინგისთვის
+let inSpike=false;        // ახლა spike-ში ვართ
+let spikeConsec=0;        // თანმიმდევრული spike კადრები
+let quietConsec=0;        // spike-ის შემდეგ quiet კადრები
+
+btnSS.addEventListener('click',()=>{
+  isRec=!isRec;
+  if(isRec){
+    recStart=performance.now();
+    wheelPasses=[];ballPasses=[];
+    lastWheelT=-999;ballLockUntil=0;
+    prevAvg=null;bgAvg=null;spikeBuf=[];
+    inSpike=false;spikeConsec=0;quietConsec=0;
+    btnSS.textContent='⏹ STOP';btnSS.style.background='#b91c1c';
+    statusTxt.textContent='იწერება...';
+    document.getElementById('bHits').textContent='0';
+    document.getElementById('bBallHz').textContent='--';
   } else {
-    stopTime = performance.now();
-    btnSS.textContent = '▶ START'; btnSS.style.background = '#16a34a';
-    statusTxt.textContent = 'მზადაა';
+    btnSS.textContent='▶ START';btnSS.style.background='#16a34a';
+    statusTxt.textContent='მზადაა';
   }
 });
 
-// ================================================================
-// Drag & Resize სენსორები
-// ================================================================
-function setTouchDrag(el, keepHeight){
-  let dragging=false, resizing=false, sx, sy, sl2, st, sw2;
+// ============================================================
+// pixel sample — el-ის ადგილი ვიდეოდან
+// ============================================================
+function sampleEl(el, ctx, W, H){
+  const vw=vid.videoWidth, vh=vid.videoHeight;
+  if(!vw||!vh) return new Uint8ClampedArray(W*H*4);
+  const rect=vid.getBoundingClientRect();
+  const scX=vw/rect.width, scY=vh/rect.height;
+  const sx=((el.offsetLeft+wrapper.offsetLeft)-rect.left)*scX;
+  const sy=((el.offsetTop +wrapper.offsetTop )-rect.top )*scY;
+  const sw=Math.max(4,el.offsetWidth*scX);
+  const sh=Math.max(4,el.offsetHeight*scY);
+  ctx.clearRect(0,0,W,H);
+  ctx.drawImage(vid,sx,sy,sw,sh,0,0,W,H);
+  return ctx.getImageData(0,0,W,H).data;
+}
 
-  function start(x, y, isRes){
-    if(isRes){ resizing=true; sw2=el.offsetWidth; }
-    else      { dragging=true; sl2=el.offsetLeft; st=el.offsetTop; }
-    sx=x; sy=y;
+function isGreen(r,g,b,lv){
+  return g>(48+lv*7)&&g>r*(1.12+lv*0.06)&&g>b*(1.12+lv*0.06)&&r<g*(0.88-lv*0.05);
+}
+
+// ============================================================
+// ბურთის სენსორი — FRAME DELTA მიდგომა
+//
+// ლოგიკა:
+//  1. baseline bgAvg = running average quiet კადრებიდან
+//  2. curAvg = მიმდინარე კადრის საშუალო brightness სენსორ არეაში
+//  3. delta = curAvg - bgAvg  →  ბურთი ანათებს ვიდრე ფონი
+//  4. spike: delta >= threshold  AND  delta > prevDelta*0.6 (მზარდი)
+//  5. ბურთი გატარდა = spike დასრულდა (rising→falling transition)
+//  6. ციმციმი filter: baseline-ის relative spike უნდა იყოს >15%
+// ============================================================
+function processBall(now, ts){
+  const BD=24;
+  const data = sampleEl(elSB, ctxB, BD, BD);
+
+  // საშუალო brightness + ვერცხლის ბუსტი
+  let sumL=0, n=BD*BD;
+  for(let i=0;i<data.length;i+=4){
+    const r=data[i],g=data[i+1],b=data[i+2];
+    const lum=0.299*r+0.587*g+0.114*b;
+    // ვერცხლი = neutral + bright
+    const mn=Math.min(r,g,b), mx=Math.max(r,g,b);
+    const sat=mx>0?(mx-mn)/mx:0;
+    const bonus=(lum>50&&sat<0.35)?lum*0.3:0;
+    sumL+=lum+bonus;
   }
-  function move(x, y){
-    if(dragging){
-      el.style.left = (sl2 + x - sx) + 'px';
-      el.style.top  = (st  + y - sy) + 'px';
-    }
-    if(resizing){
-      const nw = Math.max(30, sw2 + (x - sx));
-      el.style.width = nw + 'px';
-      if(!keepHeight) el.style.height = nw + 'px';
-    }
-  }
+  const curAvg=sumL/n;
 
-  el.addEventListener('mousedown', e => start(e.clientX, e.clientY, e.target.className==='resizer'));
-  el.addEventListener('touchstart', e => { const t=e.touches[0]; start(t.clientX, t.clientY, e.target.className==='resizer'); });
-  window.addEventListener('mousemove', e => { if(dragging||resizing) move(e.clientX, e.clientY); });
-  window.addEventListener('touchmove', e => { if(dragging||resizing){ const t=e.touches[0]; move(t.clientX, t.clientY); }});
-  window.addEventListener('mouseup',  () => { dragging=false; resizing=false; });
-  window.addEventListener('touchend', () => { dragging=false; resizing=false; });
-}
-setTouchDrag(sW.el, false);  // მწვანე: კვადრატი/წრე
-setTouchDrag(sB.el, true);   // ბურთი: სიმაღლე ფიქსირებული
+  // baseline init
+  if(bgAvg===null){ bgAvg=curAvg; prevAvg=curAvg; }
 
-// ================================================================
-// sample — ვიდეოდან pixel მონაცემი
-// ================================================================
-function sample(el, ctx, sw, sh){
-  const vw = vid.videoWidth, vh = vid.videoHeight;
-  if(!vw || !vh) return new Uint8ClampedArray(sw*sh*4);
-  const r = vid.getBoundingClientRect();
-  const scaleX = vw / r.width, scaleY = vh / r.height;
-  const sx = ((el.offsetLeft + wrapper.offsetLeft) - r.left) * scaleX;
-  const sy = ((el.offsetTop  + wrapper.offsetTop ) - r.top ) * scaleY;
-  const sw2 = Math.max(4, el.offsetWidth  * scaleX);
-  const sh2 = Math.max(4, el.offsetHeight * scaleY);
-  ctx.clearRect(0, 0, sw, sh);
-  ctx.drawImage(vid, sx, sy, sw2, sh2, 0, 0, sw, sh);
-  return ctx.getImageData(0, 0, sw, sh).data;
-}
+  const thr = parseInt(ballSensSl.value);   // threshold (სლაიდერი)
+  const delta = curAvg - bgAvg;             // baseline-თან სხვაობა
+  const relSpike = bgAvg>0 ? (delta/bgAvg)*100 : 0;  // %
 
-// ================================================================
-// მწვანე ფერის დეტექტორი (უცვლელი)
-// ================================================================
-function isGreen(r, g, b, lv){
-  return g>(48+lv*7) && g>r*(1.12+lv*0.06) && g>b*(1.12+lv*0.06) && r<g*(0.88-lv*0.05);
-}
+  // spike = delta >= thr AND relative >8%
+  const isHigh = delta>=thr && relSpike>=8;
 
-// ================================================================
-// brightness პროფილი სენსორ ზოლიდან
-// სვეტების (columns) საშუალო luminance
-// ================================================================
-function getBrightnessProfile(data, W, H){
-  const prof = new Float32Array(W);
-  for(let x = 0; x < W; x++){
-    let sum = 0;
-    for(let y = 0; y < H; y++){
-      const i = (y * W + x) * 4;
-      const lum = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
-      // ვერცხლის / ნეიტრალი ფერის ბონუსი
-      // (R≈G≈B და საშუალო+ brightness => ვერცხლი)
-      const mn  = Math.min(data[i], data[i+1], data[i+2]);
-      const mx  = Math.max(data[i], data[i+1], data[i+2]);
-      const sat = mx > 0 ? (mx - mn) / mx : 0;
-      const silverBonus = (lum > 55 && sat < 0.38) ? lum * 0.35 : 0;
-      sum += lum + silverBonus;
-    }
-    prof[x] = sum / H;
-  }
-  return prof;
-}
-
-// ================================================================
-// ბურთის სმარტ დეტექტორი
-// — ვეძებთ ლოკალიზებულ bright spot-ს ვერცხლის ბილიკში
-// — ეკრანის ციმციმი: მთელი ზოლი ერთნაირად ანათებს (spatial ≠ peak)
-// — ბურთი: ერთი ადგილი ანათებს, გვერდები კი ნაკლებად
-// ================================================================
-function detectBallInReflectStrip(now, ts){
-  const bd   = sample(sB.el, ctxBall, BALL_W, BALL_H);
-  const prof = getBrightnessProfile(bd, BALL_W, BALL_H);
-
-  // --- 1. Baseline კალიბრაცია (პირველი 25 კადრი) ---
-  if(baseCount < 25){
-    if(!baseProfile){
-      baseProfile = new Float32Array(BALL_W);
-      for(let x = 0; x < BALL_W; x++) baseProfile[x] = prof[x];
+  // --- state machine ---
+  if(!inSpike){
+    if(isHigh){
+      spikeConsec++;
+      if(spikeConsec>=2){ inSpike=true; quietConsec=0; }
     } else {
-      for(let x = 0; x < BALL_W; x++) baseProfile[x] = baseProfile[x]*0.82 + prof[x]*0.18;
+      spikeConsec=0;
+      // baseline update მხოლოდ quiet კადრებზე
+      bgAvg = bgAvg*0.96 + curAvg*0.04;
     }
-    baseCount++;
-    prevProfile = prof;
-    dbgBar.textContent = `⏳ baseline კალიბრაცია: ${baseCount}/25`;
-    return;
-  }
-
-  // --- 2. Peak diff vs baseline ---
-  let maxDiff = 0, peakCol = -1;
-  for(let x = 0; x < BALL_W; x++){
-    const d = prof[x] - baseProfile[x];
-    if(d > maxDiff){ maxDiff = d; peakCol = x; }
-  }
-
-  // --- 3. Spatial peak check ---
-  // ბურთი = პატარა კაშკაშა წერტილი; ციმციმი = ყველგან
-  let isSpatialPeak = false;
-  if(peakCol >= 2 && peakCol <= BALL_W - 3){
-    const neighbors = (prof[peakCol-2] + prof[peakCol-1] + prof[peakCol+1] + prof[peakCol+2]) / 4;
-    isSpatialPeak = prof[peakCol] > neighbors * 1.28;
-  }
-
-  // --- 4. Smoothed peak ---
-  peakHistory.push(maxDiff);
-  if(peakHistory.length > PEAK_WINDOW) peakHistory.shift();
-  const smoothedPeak = peakHistory.reduce((a,b) => a+b, 0) / peakHistory.length;
-
-  // --- 5. Adaptive baseline (quiet frames only) ---
-  const thr = parseInt(reflectSensSl.value);
-  if(maxDiff < thr * 0.45 && !isSpatialPeak){
-    for(let x = 0; x < BALL_W; x++) baseProfile[x] = baseProfile[x]*0.97 + prof[x]*0.03;
-  }
-
-  prevProfile = prof;
-
-  // debug
-  dbgBar.textContent = `⚪ peak:${maxDiff.toFixed(0)} smt:${smoothedPeak.toFixed(0)} thr:${thr} spat:${isSpatialPeak?'✓':'✗'} state:${ballState} hits:${ballPasses.length}`;
-
-  // --- 6. სტეიტ მანქანა ---
-  const HIGH = thr;
-  const LOW  = thr * 0.45;
-
-  if(ballState === 'idle'){
-    if(smoothedPeak >= HIGH && isSpatialPeak){
-      consecutiveHigh++;
-      if(consecutiveHigh >= 2){ ballState = 'rising'; lastPeakVal = smoothedPeak; consecutiveHigh = 0; }
-    } else {
-      consecutiveHigh = 0;
-    }
-
-  } else if(ballState === 'rising'){
-    if(smoothedPeak >= lastPeakVal * 0.58 && isSpatialPeak){
-      lastPeakVal = Math.max(lastPeakVal, smoothedPeak);
-    } else {
-      // პიკი ჩაეცა = ბურთი გაიარა!
-      if(now > ballLockoutUntil){
-        sB.el.classList.add('act');
-        ballPasses.push(ts);
-        ballLockoutUntil = now + 290;
-        // სიჩქარის ჩვენება
-        if(ballPasses.length >= 2){
-          const iv = ballPasses[ballPasses.length-1] - ballPasses[ballPasses.length-2];
-          if(iv > 0.08 && iv < 3.5) document.getElementById('bBallHz').textContent = (1/iv).toFixed(2)+'Hz';
+  } else {
+    // spike-ში ვართ — ველოდებით ვარდნას
+    if(!isHigh){
+      quietConsec++;
+      if(quietConsec>=2){
+        // SPIKE დასრულდა → ბურთი გაიარა!
+        if(now>ballLockUntil){
+          elSB.classList.add('act');
+          ballPasses.push(ts);
+          const lockMs=parseInt(lockoutSl.value);
+          ballLockUntil=now+lockMs;
+          document.getElementById('bHits').textContent=ballPasses.length;
+          if(ballPasses.length>=2){
+            const iv=ballPasses[ballPasses.length-1]-ballPasses[ballPasses.length-2];
+            if(iv>0.05&&iv<4) document.getElementById('bBallHz').textContent=(1/iv).toFixed(2)+'Hz';
+          }
+          setTimeout(()=>elSB.classList.remove('act'),140);
         }
-        setTimeout(() => sB.el.classList.remove('act'), 130);
+        inSpike=false; spikeConsec=0; quietConsec=0;
+        bgAvg=bgAvg*0.96+curAvg*0.04;
       }
-      ballState = 'cooldown';
-      consecutiveLow = 0;
-    }
-
-  } else if(ballState === 'cooldown'){
-    if(smoothedPeak < LOW){
-      consecutiveLow++;
-      if(consecutiveLow >= 3){ ballState = 'idle'; consecutiveLow = 0; }
     } else {
-      consecutiveLow = 0;
+      quietConsec=0;
     }
   }
+
+  prevAvg=curAvg;
+  dbgBar.textContent=`🥎 avg:${curAvg.toFixed(1)} bg:${bgAvg.toFixed(1)} Δ:${delta.toFixed(1)}(${relSpike.toFixed(0)}%) thr:${thr} | state:${inSpike?'SPIKE':'quiet'}(${inSpike?quietConsec:spikeConsec}) hits:${ballPasses.length}`;
 }
 
-// ================================================================
-// მთავარი დამუშავების loop
-// ================================================================
-function syncProcessingLoop(){
-  if(isRecording && vid.readyState >= 3){
-    const now = performance.now();
-    const ts  = (now - startTime) / 1000;
+// ============================================================
+// მთავარი loop
+// ============================================================
+function loop(){
+  if(isRec&&vid.readyState>=3){
+    const now=performance.now(), ts=(now-recStart)/1000;
 
-    // 🟢 მწვანე სენსორი (უცვლელი)
-    const wd = sample(sW.el, ctx8, 8, 8);
-    let gc = 0;
-    for(let i = 0; i < wd.length; i += 4)
-      if(isGreen(wd[i], wd[i+1], wd[i+2], parseInt(greenStrictSl.value))) gc++;
-    if(gc >= 4 && (ts - lastWheelPassTime) > 1.5){
-      sW.el.classList.add('act');
-      rawWheelPasses.push(ts);
-      lastWheelPassTime = ts;
-      setTimeout(() => sW.el.classList.remove('act'), 150);
+    // 🟢 მწვანე სენსორი
+    const wd=sampleEl(elSW,ctx8,8,8);
+    let gc=0;
+    for(let i=0;i<wd.length;i+=4) if(isGreen(wd[i],wd[i+1],wd[i+2],parseInt(greenSl.value))) gc++;
+    if(gc>=4&&(ts-lastWheelT)>1.5){
+      elSW.classList.add('act');
+      wheelPasses.push(ts);
+      lastWheelT=ts;
+      setTimeout(()=>elSW.classList.remove('act'),150);
     }
 
-    // 🥎 ბურთის ახალი სმარტ სენსორი
-    detectBallInReflectStrip(now, ts);
+    // 🥎 ბურთის სენსორი
+    processBall(now,ts);
   }
-
-  if(vid.requestVideoFrameCallback) vid.requestVideoFrameCallback(syncProcessingLoop);
-  else requestAnimationFrame(syncProcessingLoop);
+  if(vid.requestVideoFrameCallback) vid.requestVideoFrameCallback(loop);
+  else requestAnimationFrame(loop);
 }
-if(vid.requestVideoFrameCallback) vid.requestVideoFrameCallback(syncProcessingLoop);
-else requestAnimationFrame(syncProcessingLoop);
+if(vid.requestVideoFrameCallback) vid.requestVideoFrameCallback(loop);
+else requestAnimationFrame(loop);
 
-// ================================================================
-// ფიზიკის გამოთვლა
-// ================================================================
-function calculatePhysics(wheelMS, ballMS, gamma, offset){
-  const omega_b    = (2 * Math.PI) / (ballMS / 1000.0);
-  const omega_crit = 5.30;
-  if(omega_b <= omega_crit) return {offset: offset, laps: 0, t_drop: 0};
-  const t_drop          = Math.log(omega_b / omega_crit) / gamma;
-  const theta_ball      = (omega_b / gamma) * (1 - Math.exp(-gamma * t_drop));
-  const ballLapsRemaining = theta_ball / (2 * Math.PI);
-  const omega_w         = (2 * Math.PI) / (wheelMS / 1000.0);
-  const theta_wheel     = omega_w * t_drop;
-  const finalOffset     = offset + (((ballLapsRemaining * 37) - (theta_wheel / (2 * Math.PI) * 37)) % 37);
-  return {offset: finalOffset, t_drop: t_drop};
+// ============================================================
+// ფიზიკა
+// ============================================================
+function calcPhysics(wheelMS,ballMS,gamma,offset){
+  const ob=(2*Math.PI)/(ballMS/1000);
+  const oc=5.30;
+  if(ob<=oc) return{offset,t_drop:0};
+  const td=Math.log(ob/oc)/gamma;
+  const tball=(ob/gamma)*(1-Math.exp(-gamma*td));
+  const blaps=tball/(2*Math.PI);
+  const ow=(2*Math.PI)/(wheelMS/1000);
+  const tw=ow*td;
+  return{offset:offset+(((blaps*37)-(tw/(2*Math.PI)*37))%37),t_drop:td};
 }
 
-// ================================================================
+// ============================================================
 // ანალიზი
-// ================================================================
-document.getElementById('btnAnalyze').addEventListener('click', () => {
-  const startN  = parseInt(document.getElementById('startNum').value);
-  const actualN = parseInt(document.getElementById('actualNum').value);
-  if(isNaN(startN) || isNaN(actualN)) return alert("შეავსეთ რიცხვები!");
+// ============================================================
+document.getElementById('btnAnalyze').addEventListener('click',()=>{
+  const startN=parseInt(document.getElementById('startNum').value);
+  const actualN=parseInt(document.getElementById('actualNum').value);
+  if(isNaN(startN)||isNaN(actualN)) return alert('შეავსეთ რიცხვები!');
 
-  // დაფის ბოლო ორი გავლა
-  let wLaps = [];
-  rawWheelPasses.forEach(t => {
-    if(!wLaps.length || (t - wLaps[wLaps.length-1]) > 1.5) wLaps.push(t);
-  });
-  if(wLaps.length < 2) return alert("დაფის არასაკმარისი მონაცემები!\n(საჭიროა მინ. 2 გავლა)");
+  let wLaps=[];
+  wheelPasses.forEach(t=>{ if(!wLaps.length||(t-wLaps[wLaps.length-1])>1.5) wLaps.push(t); });
+  if(wLaps.length<2) return alert('დაფის არასაკმარისი მონაცემები!');
 
-  const t_zero_start = wLaps[wLaps.length-2];
-  const t_zero_end   = wLaps[wLaps.length-1];
-  const wheelMS      = Math.round((t_zero_end - t_zero_start) * 1000);
+  const t0=wLaps[wLaps.length-2], t1=wLaps[wLaps.length-1];
+  const wheelMS=Math.round((t1-t0)*1000);
 
-  // ბურთის გავლების ინტერპოლაცია
-  let fbp = [];
+  // ბურთის interpolation
+  let fbp=[];
   if(ballPasses.length){
-    fbp.push(ballPasses[0]);
-    let elt = 0.5;
-    for(let i = 1; i < ballPasses.length; i++){
-      if(ballPasses[i] - ballPasses[i-1] < 0.30) continue;
-      let lc = Math.round((ballPasses[i] - ballPasses[i-1]) / elt);
-      if(lc < 1) lc = 1;
-      if(lc > 1 && lc < 5){
-        let st = (ballPasses[i] - ballPasses[i-1]) / lc;
-        for(let j = 1; j < lc; j++) fbp.push(ballPasses[i-1] + st*j);
-      }
-      fbp.push(ballPasses[i]);
-      elt = (ballPasses[i] - ballPasses[i-1]) / lc;
+    fbp.push(ballPasses[0]); let elt=0.5;
+    for(let i=1;i<ballPasses.length;i++){
+      if(ballPasses[i]-ballPasses[i-1]<0.30) continue;
+      let lc=Math.round((ballPasses[i]-ballPasses[i-1])/elt);
+      if(lc<1)lc=1;
+      if(lc>1&&lc<5){ const st=(ballPasses[i]-ballPasses[i-1])/lc; for(let j=1;j<lc;j++) fbp.push(ballPasses[i-1]+st*j); }
+      fbp.push(ballPasses[i]); elt=(ballPasses[i]-ballPasses[i-1])/lc;
     }
   }
 
-  let validHits = fbp.filter(t => t >= t_zero_start && t <= t_zero_end);
-  if(validHits.length < 2) return alert("ბურთის არასაკმარისი იმპულსები!\n(საჭიროა 2+ hit ბოლო ორ გავლას შორის)");
+  const validHits=fbp.filter(t=>t>=t0&&t<=t1);
+  if(validHits.length<2) return alert('ბურთის არასაკმარისი იმპულსები!');
 
-  let intervals = [];
-  for(let i = 1; i < validHits.length; i++){
-    let d = Math.round((validHits[i] - validHits[i-1]) * 1000);
-    if(d > 350 && d < 1800) intervals.push(d);
+  let ivs=[];
+  for(let i=1;i<validHits.length;i++){
+    const d=Math.round((validHits[i]-validHits[i-1])*1000);
+    if(d>350&&d<1800) ivs.push(d);
   }
-  if(intervals.length === 0) return alert("ინტერვალები ვერ მოიძებნა!");
+  if(!ivs.length) return alert('ინტერვალები ვერ მოიძებნა!');
 
-  let ballMS = intervals[intervals.length-1], msgWarning = "";
-  if(intervals.length >= 2){
-    let prev = intervals[intervals.length-2];
-    if(ballMS < prev * 0.75){ ballMS = Math.round(prev * 1.06); msgWarning = "⚠️ აჩქარების ანომალია გაიფილტრა!"; }
-  }
+  let ballMS=ivs[ivs.length-1], warn='';
+  if(ivs.length>=2){ const prev=ivs[ivs.length-2]; if(ballMS<prev*0.75){ballMS=Math.round(prev*1.06);warn='⚠️ აჩქარების ანომალია გაიფილტრა!';} }
 
-  let run = calculatePhysics(wheelMS, ballMS, AI_STATE.gamma, AI_STATE.hardwareOffset);
-  const lapDur = wheelMS / 1000.0;
-  let lp = ((validHits[validHits.length-1] - t_zero_start) / lapDur) % 1;
-  if(lp < 0) lp += 1;
+  const run=calcPhysics(wheelMS,ballMS,AI.gamma,AI.hardwareOffset);
+  const lapDur=wheelMS/1000;
+  let lp=((validHits[validHits.length-1]-t0)/lapDur)%1; if(lp<0)lp+=1;
 
-  let earlyIndex     = (WHL.indexOf(startN) + Math.round(lp * 37)) % 37;
-  let predictedIndex = Math.round(earlyIndex + run.offset) % 37;
-  if(predictedIndex < 0) predictedIndex += 37;
-  let tN = WHL[predictedIndex];
+  let ei=(WHL.indexOf(startN)+Math.round(lp*37))%37;
+  let pi=Math.round(ei+run.offset)%37; if(pi<0)pi+=37;
+  const tN=WHL[pi];
 
   // AI სწავლება
-  let actualIndex  = WHL.indexOf(actualN);
-  let errorSectors = actualIndex - predictedIndex;
-  if(errorSectors > 18) errorSectors -= 37;
-  if(errorSectors < -18) errorSectors += 37;
-
-  if(Math.abs(errorSectors) > 0 && Math.abs(errorSectors) < 15){
-    AI_STATE.hardwareOffset += errorSectors * 0.12;
-    if(run.t_drop > 0) AI_STATE.gamma -= (errorSectors / run.t_drop) * 0.0008;
-    AI_STATE.gamma = Math.max(0.08, Math.min(0.22, AI_STATE.gamma));
-    AI_STATE.totalSpinsLearned++;
-    localStorage.setItem('ai_gamma',  AI_STATE.gamma);
-    localStorage.setItem('ai_offset', AI_STATE.hardwareOffset);
-    localStorage.setItem('ai_spins',  AI_STATE.totalSpinsLearned);
-    updateBrainDashboard();
+  let ai=WHL.indexOf(actualN), err=ai-pi;
+  if(err>18)err-=37; if(err<-18)err+=37;
+  if(Math.abs(err)>0&&Math.abs(err)<15){
+    AI.hardwareOffset+=err*0.12;
+    if(run.t_drop>0) AI.gamma-=(err/run.t_drop)*0.0008;
+    AI.gamma=Math.max(0.08,Math.min(0.22,AI.gamma));
+    AI.spins++; saveBrain(); updateDash();
   }
 
-  const n3=WHL[(predictedIndex-3+37)%37], n2=WHL[(predictedIndex-2+37)%37], n1=WHL[(predictedIndex-1+37)%37];
-  const p1=WHL[(predictedIndex+1)%37],    p2=WHL[(predictedIndex+2)%37],    p3=WHL[(predictedIndex+3)%37];
-  const zone = [tN,n1,n2,n3,p1,p2,p3];
-  const won  = zone.includes(actualN);
+  const n3=WHL[(pi-3+37)%37],n2=WHL[(pi-2+37)%37],n1=WHL[(pi-1+37)%37];
+  const p1=WHL[(pi+1)%37],p2=WHL[(pi+2)%37],p3=WHL[(pi+3)%37];
+  const zone=[tN,n1,n2,n3,p1,p2,p3];
 
-  let html = `<div class="ratio-box"><span>⚙️ ${wheelMS}ms</span><span>🥎 ${ballMS}ms</span><span>🎯 R: ${(wheelMS/ballMS).toFixed(1)}</span></div>`;
-  if(msgWarning) html += `<div class="warn-box">${msgWarning}</div>`;
-  html += `<div class="pred-box">🔮 <b>პროგნოზი: ${tN}</b><br>🎯 ზონა: <span style="color:#fbbf24">${n3} ${n2} ${n1} [${tN}] ${p1} ${p2} ${p3}</span><br>`;
-  html += `<div>${won ? '✅ <b>მოგება!</b>' : '❌ რეალური: ['+actualN+'] (AI შესწორდა)'}</div></div>`;
-  output.innerHTML = html;
+  let html=`<div class="ratio-box"><span>⚙️${wheelMS}ms</span><span>🥎${ballMS}ms</span><span>🎯R:${(wheelMS/ballMS).toFixed(1)}</span></div>`;
+  if(warn) html+=`<div class="warn-box">${warn}</div>`;
+  html+=`<div class="pred-box">🔮<b>პროგნოზი: ${tN}</b><br>🎯ზონა:<span style="color:#fbbf24"> ${n3} ${n2} ${n1} [${tN}] ${p1} ${p2} ${p3}</span><br>`;
+  html+=`<div>${zone.includes(actualN)?'✅<b>მოგება!</b>':'❌ რეალური:['+actualN+'] (AI შესწორდა)'}</div></div>`;
+  output.innerHTML=html;
 });
 
-// ================================================================
-// პირველი გაშვება
-// ================================================================
 initCamera();
 </script>
 </body>
