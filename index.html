@@ -295,4 +295,23 @@ document.getElementById('btnAnalyze').addEventListener('click', ()=>{
   let actualIndex = WHL.indexOf(actualN), errorSectors = actualIndex - predictedIndex;
   if (errorSectors > 18) errorSectors -= 37; if (errorSectors < -18) errorSectors += 37;
 
-  if (Math.abs(errorS
+  if (Math.abs(errorSectors) > 0 && Math.abs(errorSectors) < 15) {
+    AI_STATE.hardwareOffset += errorSectors * 0.12;
+    if(run.t_drop > 0) AI_STATE.gamma -= (errorSectors / run.t_drop) * 0.0008;
+    AI_STATE.gamma = Math.max(0.08, Math.min(0.22, AI_STATE.gamma)); AI_STATE.totalSpinsLearned++;
+    localStorage.setItem('ai_gamma', AI_STATE.gamma); localStorage.setItem('ai_offset', AI_STATE.hardwareOffset); localStorage.setItem('ai_spins', AI_STATE.totalSpinsLearned);
+    updateBrainDashboard();
+  }
+
+  let n3=WHL[(predictedIndex-3+37)%37], n2=WHL[(predictedIndex-2+37)%37], n1=WHL[(predictedIndex-1+37)%37], p1=WHL[(predictedIndex+1)%37], p2=WHL[(predictedIndex+2)%37], p3=WHL[(predictedIndex+3)%37];
+
+  let html=`<div class="ratio-box"><span>⚙️ ${wheelMS}ms</span><span>🥎 ${ballMS}ms</span><span>🎯 R: ${(wheelMS/ballMS).toFixed(1)}</span></div>`;
+  if(msgWarning) html+=`<div class="warn-box">${msgWarning}</div>`;
+  html+=`<div class="pred-box">🔮 <b>პროგნოზი: ${tN}</b><br>🎯 ზონა: <span style="color:#fbbf24">${n3} ${n2} ${n1} [${tN}] ${p1} ${p2} ${p3}</span><br>`;
+  html+=`<div>${[tN,n1,n2,n3,p1,p2,p3].includes(actualN)?'✅ <b>მოგება!</b>':'❌ რეალური: ['+actualN+'] (AI შესწორდა)'}</div></div>`;
+  output.innerHTML=html;
+});
+initCamera();
+</script>
+</body>
+</html>
