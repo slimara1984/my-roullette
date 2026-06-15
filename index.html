@@ -54,7 +54,7 @@ video{width:100%;height:100%;object-fit:contain}
 <body>
 
 <div id="topBar">
-  <h2>🎰 ROULETTE v12.2</h2>
+  <h2>🎰 ROULETTE v12.3</h2>
   <button id="btnTab" class="btn">📺 ვიდეო</button>
   <button id="btnSS" class="btn">▶ START</button>
   <span id="statusTxt">გათიშული</span>
@@ -62,7 +62,7 @@ video{width:100%;height:100%;object-fit:contain}
 
 <div id="sliders">
   <label>🟢 მწვანე: <input type="range" id="greenStrict" min="1" max="5" value="3"> <span class="sv" id="sv1">3</span></label>
-  <label>🟡 ბურთის ფილტრი: <input type="range" id="ballSens" min="10" max="95" value="75"> <span class="sv" id="sv2">75%</span></label>
+  <label>🟡 მგრძნობელობა: <input type="range" id="ballSens" min="5" max="50" value="15"> <span class="sv" id="sv2">15</span></label>
 </div>
 
 <div id="brainState">
@@ -116,11 +116,12 @@ function sl(id,outId,p=false){
   const e=document.getElementById(id),o=document.getElementById(outId);
   e.addEventListener('input',()=>{o.textContent=e.value+(p?'%':'')}); return e;
 }
-const greenStrictSl=sl('greenStrict','sv1'), ballSensSl=sl('ballSens','sv2',true);
+const greenStrictSl=sl('greenStrict','sv1'), ballSensSl=sl('ballSens','sv2');
 const sW={el:document.getElementById('sw'),act:false}, sB={el:document.getElementById('sb'),act:false};
 
 let isRecording=false, rawWheelPasses=[], ballPasses=[], startTime=0, stopTime=0, lastWheelPassTime=-999, ballLockoutUntil=0;
 let currentFacingMode = "environment";
+let lastMatrix = null;
 
 async function initCamera() {
   if (vid.srcObject) {
@@ -150,7 +151,7 @@ document.getElementById('btnTab').addEventListener('click', () => {
 btnSS.addEventListener('click', ()=>{
   isRecording=!isRecording;
   if(isRecording){
-    startTime=performance.now(); rawWheelPasses=[]; ballPasses=[]; ballLockoutUntil=0; lastWheelPassTime=-999;
+    startTime=performance.now(); rawWheelPasses=[]; ballPasses=[]; ballLockoutUntil=0; lastWheelPassTime=-999; lastMatrix = null;
     btnSS.textContent='⏹ STOP'; btnSS.style.background='#b91c1c'; statusTxt.textContent='იწერება...';
   }else{
     stopTime=performance.now(); btnSS.textContent='▶ START'; btnSS.style.background='#16a34a'; statusTxt.textContent='მზადაა';
@@ -191,7 +192,7 @@ function syncProcessingLoop() {
   if (isRecording && vid.readyState >= 3) {
     const now = performance.now(), ts = (now - startTime) / 1000;
     
-    // მწვანე სენსორის დამუშავება
+    // 🟢 მწვანე სენსორი
     const wd = sample(sW.el,ctx8,8); let gc = 0;
     for (let i = 0; i < wd.length; i += 4) if (isGreen(wd[i], wd[i + 1], wd[i + 2], parseInt(greenStrictSl.value))) gc++;
     if (gc >= 16 * 0.25 && (ts - lastWheelPassTime) > 1.5) {
@@ -199,20 +200,38 @@ function syncProcessingLoop() {
       setTimeout(()=>sW.el.classList.remove('act'),150);
     }
     
-    // ბურთის ახალი სენსორი: მუშაობს სიკაშკაშის პრინციპით (Brightness Threshold)
-    const bd = sample(sB.el,ctx16,16); let brightPixels = 0;
-    let targetBright = parseInt(ballSensSl.value) * 2.3; // ვარეგულირებთ სლაიდერით
+    // 🟡 ბურთის ახალი სენსორი (ლოკალური მატრიცული დიფერენციაცია)
+    const bd = sample(sB.el,ctx16,16);
+    let currentMatrix = new Float32Array(256);
+    let totalBrightness = 0;
     
-    for (let i = 0; i < bd.length; i += 4) {
-      let brightness = 0.299*bd[i] + 0.587*bd[i+1] + 0.114*bd[i+2];
-      if (brightness > targetBright) brightPixels++;
+    for (let i = 0, j = 0; i < bd.length; i += 4, j++) {
+      let b = 0.299*bd[i] + 0.587*bd[i+1] + 0.114*bd[i+2];
+      currentMatrix[j] = b;
+      totalBrightness += b;
     }
+    let avgBrightness = totalBrightness / 256;
     
-    // თუ სენსორში საკმარისი კაშკაშა (თეთრი) პიქსელი დაფიქსირდა და ლოქაუტი გასულია
-    if (brightPixels >= 10 && now > ballLockoutUntil) {
-      sB.el.classList.add('act'); ballPasses.push(ts); ballLockoutUntil = now + 280; // იცავს თავიდან ორმაგ დაჭერას
-      setTimeout(() => sB.el.classList.remove('act'), 120);
+    if (lastMatrix && avgBrightness > 10) {
+      let structuralChange = 0;
+      let triggerThreshold = parseInt(ballSensSl.value); // სლაიდერით კონტროლდება
+      
+      for (let j = 0; j < 256; j++) {
+        // ვადარებთ არა აბსოლუტურ სინათლეს, არამედ იმას, თუ რამდენად შეიცვალა პიქსელი საშუალო ფონთან მიმართებაში
+        let prevNorm = lastMatrix[j] / avgBrightness;
+        let curNorm = currentMatrix[j] / avgBrightness;
+        if (Math.abs(curNorm - prevNorm) > 0.08) { 
+          structuralChange++;
+        }
+      }
+      
+      // თუ სტრუქტურული სხვაობა დიდია და ლოქაუტი გასულია
+      if (structuralChange >= triggerThreshold && now > ballLockoutUntil) {
+        sB.el.classList.add('act'); ballPasses.push(ts); ballLockoutUntil = now + 320;
+        setTimeout(() => sB.el.classList.remove('act'), 120);
+      }
     }
+    lastMatrix = currentMatrix;
   }
   if(vid.requestVideoFrameCallback) vid.requestVideoFrameCallback(syncProcessingLoop); else requestAnimationFrame(syncProcessingLoop);
 }
